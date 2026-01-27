@@ -94,7 +94,13 @@ export function ApiClientsPage() {
       id: it.id,
       nome: it.nome ?? '',
       clientId: it.clientId ?? '',
+      // Edição completa ainda não existe na API (por enquanto, apenas status).
+      // Mantemos os campos para reutilizar a mesma tela de criação.
+      empresaId: '',
+      clientSecret: '',
+      scopes: [...SCOPE_OPTIONS],
       ativo: !!it.ativo,
+      originalAtivo: !!it.ativo,
     })
   }
 
@@ -148,11 +154,16 @@ export function ApiClientsPage() {
     setEditor((s) => ({ ...s, loading: true }))
     try {
       if (editor.mode === 'EDIT' && editor.id) {
-        // Observação: a API atual do Progem expõe somente (nome, clientId, ativo) na leitura.
-        // Mantemos o update enxuto e seguro.
-        const payload = { nome, clientId, ativo: editor.ativo !== false }
-        await http.put(endpoints.apiClientUpdate(editor.id), payload)
-        setToast({ kind: 'success', message: 'Tenant atualizado com sucesso.' })
+        // Importante: ainda não existe endpoint de update completo do tenant.
+        // Para evitar "Method Not Allowed", tratamos aqui apenas a atualização de STATUS.
+        const nextAtivo = editor.ativo !== false
+
+        if (editor.originalAtivo != null && editor.originalAtivo !== nextAtivo) {
+          await http.patch(endpoints.apiClientToggleStatus(editor.id), { ativo: nextAtivo })
+          setToast({ kind: 'success', message: 'Status do tenant atualizado com sucesso.' })
+        } else {
+          setToast({ kind: 'success', message: 'Nenhuma alteração para salvar.' })
+        }
       } else {
         const payload = {
           nome,
@@ -161,7 +172,9 @@ export function ApiClientsPage() {
           escopos,
           empresaId: Number(empresaIdRaw),
         }
-        await http.post(endpoints.apiClientCreate(), payload)
+        const created = await http.post<ApiClientResponse>(endpoints.apiClientCreate(), payload)
+        // UX: ao criar, filtra automaticamente pelo ID recém criado
+        if (created?.id != null) setQ(String(created.id))
         setToast({ kind: 'success', message: 'Tenant criado com sucesso.' })
       }
       closeEditor()
@@ -350,7 +363,8 @@ export function ApiClientsPage() {
                 </Button>
               }
             >
-              <div className="awis-stack" style={{ gap: 12 }}>
+              <div className="awis-modal-scroll">
+                <div className="awis-stack" style={{ gap: 12 }}>
                 <Input
                   label="Nome"
                   placeholder="Ex: FUNERÁRIA SÃO BENTO"
@@ -387,8 +401,8 @@ export function ApiClientsPage() {
                 ) : null}
 
                 {editor.mode !== 'EDIT' ? (
-                  <div className="awis-stack" style={{ gap: 10 }}>
-                    <div className="awis-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <details className="awis-details" open>
+                    <summary className="awis-details-summary">
                       <div>
                         <div style={{ fontWeight: 700 }}>Escopos</div>
                         <div className="awis-muted" style={{ fontSize: 12, marginTop: 2 }}>
@@ -396,26 +410,17 @@ export function ApiClientsPage() {
                         </div>
                       </div>
                       <div className="awis-row" style={{ gap: 10 }}>
-                        <Button variant="ghost" onClick={selectAllScopes} disabled={!!editor.loading}>
+                        <Button variant="ghost" onClick={(e) => { e.preventDefault(); selectAllScopes() }} disabled={!!editor.loading}>
                           Selecionar tudo
                         </Button>
-                        <Button variant="ghost" onClick={clearScopes} disabled={!!editor.loading}>
+                        <Button variant="ghost" onClick={(e) => { e.preventDefault(); clearScopes() }} disabled={!!editor.loading}>
                           Limpar
                         </Button>
                       </div>
-                    </div>
+                    </summary>
 
-                    <div
-                      className="awis-grid"
-                      style={{
-                        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                        gap: 10,
-                        padding: 12,
-                        border: '1px solid var(--border)',
-                        borderRadius: 14,
-                        background: 'rgba(255,255,255,0.02)',
-                      }}
-                    >
+                    <div className="awis-scope-box">
+                    <div className="awis-grid awis-scope-grid">
                       {SCOPE_OPTIONS.map((s) => {
                         const checked = (editor.scopes ?? []).includes(s)
                         return (
@@ -436,11 +441,12 @@ export function ApiClientsPage() {
                       })}
                     </div>
 
-                    <div className="awis-muted" style={{ fontSize: 12 }}>
+                    <div className="awis-muted" style={{ fontSize: 12, marginTop: 10 }}>
                       Payload gerado: <span className="awis-mono">escopos</span> ={' '}
                       <span className="awis-mono">{(editor.scopes ?? []).join(' ') || '—'}</span>
                     </div>
-                  </div>
+                    </div>
+                  </details>
                 ) : null}
 
                 <div className="awis-row" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
@@ -459,6 +465,7 @@ export function ApiClientsPage() {
                       {editor.loading ? 'Salvando…' : 'Salvar'}
                     </Button>
                   </div>
+                </div>
                 </div>
               </div>
             </Card>

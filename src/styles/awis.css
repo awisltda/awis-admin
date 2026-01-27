@@ -21,6 +21,9 @@
   --awis-accent: #40a0b0; /* teal (logo) */
   --accent-rgb: 64, 160, 176;
 
+  /* ✅ Added: rgb for gradients / glass */
+  --primary-rgb: 48, 64, 112;
+
   /* Semantic */
   --primary: var(--awis-primary);
   --primary-contrast: #ffffff;
@@ -75,6 +78,9 @@
   --primary: var(--awis-accent);
   --primary-contrast: #05202a;
   --accent-rgb: 64, 160, 176;
+
+  /* ✅ Added: rgb for gradients / glass (in dark, puxando pro teal) */
+  --primary-rgb: 64, 160, 176;
 
   --bg: #0b1626;
   --surface: #0f1b2f;
@@ -769,10 +775,203 @@ input:focus {
 -------------------------------- */
 .awis-center { min-height: 100vh; display:flex; align-items:center; justify-content:center; padding: 18px; }
 
+/* ✅ LOGIN (simplificado — 1 coluna, foco no formulário, spacing premium) */
+.awis-login{
+  min-height: 100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+
+  background:
+    radial-gradient(1200px 700px at 18% 0%, rgba(var(--primary-rgb), 0.12), transparent 52%),
+    radial-gradient(900px 600px at 100% 18%, rgba(64, 160, 176, 0.10), transparent 55%);
+}
+
+.awis-login::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background:
+    radial-gradient(800px 520px at 30% 28%, rgba(255,255,255,0.14), transparent 60%),
+    radial-gradient(700px 500px at 76% 58%, rgba(255,255,255,0.10), transparent 62%);
+  pointer-events:none;
+}
+
+:root[data-theme='dark'] .awis-login::before{
+  background:
+    radial-gradient(900px 600px at 30% 22%, rgba(255,255,255,0.07), transparent 60%),
+    radial-gradient(800px 560px at 75% 55%, rgba(255,255,255,0.05), transparent 62%);
+}
+
+/* wrapper */
+.awis-login-wrap{
+  width: min(460px, 100%);
+  position: relative;
+  z-index: 1;
+}
+
+/* topo: marca + título */
+.awis-login-top{
+  margin-bottom: 12px;
+}
+
+.awis-login-brand{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.60);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px) saturate(1.12);
+  -webkit-backdrop-filter: blur(10px) saturate(1.12);
+}
+
+:root[data-theme='dark'] .awis-login-brand{
+  background: rgba(15, 27, 47, 0.56);
+}
+
+.awis-login-logo{
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+}
+
+.awis-login-brand-text{ min-width: 0; }
+.awis-login-title{
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  line-height: 1.1;
+}
+.awis-login-sub{
+  color: var(--text-muted);
+  font-size: 12.5px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* headline simples */
+.awis-login-headline{
+  padding: 14px 2px 0;
+}
+.awis-login-h1{
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.15;
+}
+.awis-login-hint{
+  margin-top: 6px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+/* form */
+.awis-login-form{
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.awis-login-actions{
+  margin-top: 2px;
+}
+
+.awis-input-action{
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.55);
+  color: var(--text-muted);
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12.5px;
+  transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+:root[data-theme='dark'] .awis-input-action{
+  background: rgba(255,255,255,0.08);
+}
+
+.awis-input-action:hover{
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.awis-input-action:active{ transform: translateY(0px); }
+
+.awis-login-warn{
+  margin-top: -6px;
+  color: rgba(245, 158, 11, 0.95);
+  font-size: 12px;
+}
+
+/* advanced */
+.awis-login-advanced{
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.45);
+  padding: 10px 12px;
+}
+
+:root[data-theme='dark'] .awis-login-advanced{
+  background: rgba(255,255,255,0.06);
+}
+
+.awis-login-advanced > summary{
+  cursor: pointer;
+  list-style: none;
+  color: var(--text);
+  font-weight: 650;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  height: 38px;
+}
+
+.awis-login-advanced > summary::-webkit-details-marker{ display:none; }
+
+.awis-login-advanced > summary::after{
+  content: "▾";
+  color: var(--text-muted);
+  transition: transform var(--t-fast) var(--ease);
+}
+
+.awis-login-advanced[open] > summary::after{
+  transform: rotate(180deg);
+}
+
+.awis-login-advanced-body{
+  padding-top: 10px;
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.awis-login-foot{
+  padding: 10px 6px 0;
+  font-size: 12px;
+}
+
+/* small screens */
+@media (max-width: 480px){
+  .awis-login{ padding: 18px; }
+  .awis-login-brand{ border-radius: 16px; }
+}
+
+
 .awis-modal-backdrop{
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 2000;
   background: rgba(0,0,0,0.55);
   display:flex;
   align-items:center;
@@ -787,6 +986,51 @@ input:focus {
 .awis-modal.awis-card{ border-radius: 20px; box-shadow: var(--shadow-lg); }
 .awis-modal .awis-card-title{ font-size: 16px; }
 .awis-modal .awis-card-sub b{ color: var(--text); font-weight: 600; }
+
+.awis-modal-scroll{
+  max-height: 78vh;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.awis-modal-scroll::-webkit-scrollbar{ width: 10px; }
+.awis-modal-scroll::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,0.18);
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.35);
+}
+
+.awis-details{
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 12px;
+}
+
+.awis-details > summary{
+  list-style: none;
+  cursor: pointer;
+}
+
+.awis-details > summary::-webkit-details-marker{ display:none; }
+
+.awis-scope-grid{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 16px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 8px 2px 2px;
+}
+
+@media (max-width: 720px){
+  .awis-modal{ width: min(94vw, 560px); }
+  .awis-scope-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 460px){
+  .awis-scope-grid{ grid-template-columns: 1fr; }
+}
 
 .awis-toast{
   position:fixed;
