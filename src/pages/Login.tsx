@@ -95,7 +95,7 @@ export function Login() {
 
   return (
     <div className="awis-center">
-      <Card title="AWIS Console — Acesso" subtitle="Entre com seu e-mail e senha (perfil AWIS).">
+      <Card title="AWIS Console + Acesso" subtitle="Entre com seu e-mail e senha (perfil AWIS).">
         <form onSubmit={onSubmit} className="awis-form">
           <Input
             label="BaseUrl da API"
