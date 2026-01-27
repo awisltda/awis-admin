@@ -440,6 +440,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
   box-shadow: var(--shadow-sm);
 }
 .awis-card-head { padding: 16px 16px 0 16px; }
+.awis-card-head-row{ display:flex; align-items:flex-start; justify-content:space-between; gap: 12px; }
+.awis-card-head-main{ min-width: 0; }
+.awis-card-head-right{ display:flex; align-items:center; justify-content:flex-end; gap: 10px; flex: 0 0 auto; }
+.awis-card-head-right .awis-btn{ height: 34px; }
 .awis-card-title { font-weight: 600; letter-spacing: -0.01em; }
 .awis-card-sub { margin-top: 6px; color: var(--text-muted); font-size: 13px; }
 .awis-card-body { padding: 16px; }
@@ -630,7 +634,7 @@ input:focus {
 
 .awis-tr{
   display: grid;
-  grid-template-columns: 110px 1fr 140px 160px;
+  grid-template-columns: var(--cols, 110px 1fr 140px 160px);
   gap: 12px;
   padding: 14px 14px;
   border-top: 1px solid var(--border);
@@ -638,24 +642,33 @@ input:focus {
   min-width: 680px;
 
   position: relative;
-  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  will-change: transform;
 }
 
 /* header row */
 .awis-th{
   border-top: 0;
-  background: rgba(15, 23, 42, 0.02);
+  background: rgba(255,255,255,0.55);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  backdrop-filter: blur(10px) saturate(140%);
   font-size: 12px;
   color: var(--text-muted);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 :root[data-theme='dark'] .awis-th{
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(15, 23, 42, 0.55);
 }
 
 /* hover premium */
-.awis-tr:hover{ background: rgba(var(--accent-rgb), 0.06); }
+.awis-tr:hover{
+  background: rgba(var(--accent-rgb), 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
 
 /* zebra (desktop only) */
 @media (min-width: 641px){
@@ -759,6 +772,7 @@ input:focus {
 .awis-modal-backdrop{
   position: fixed;
   inset: 0;
+  z-index: 1000;
   background: rgba(0,0,0,0.55);
   display:flex;
   align-items:center;

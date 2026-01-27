@@ -4,6 +4,8 @@ export const endpoints = {
 
   apiClients: () => `/api/v1/api-clients`,
   apiClientById: (id: number) => `/api/v1/api-clients/${id}`,
+  apiClientCreate: () => `/api/v1/api-clients`,
+  apiClientUpdate: (id: number) => `/api/v1/api-clients/${id}`,
   apiClientStatus: (id: number, ativo: boolean) => `/api/v1/api-clients/${id}/status?ativo=${ativo}`,
 
   apiClientUnidades: (apiClientId: number) => `/api/v1/api-clients/${apiClientId}/unidades`,

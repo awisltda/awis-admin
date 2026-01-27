@@ -62,6 +62,13 @@ export function TenantDetail() {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<ToastState>(null)
 
+  const [editor, setEditor] = useState<{
+    open: boolean
+    loading?: boolean
+    nome?: string
+    clientId?: string
+  }>({ open: false })
+
   const [confirmToggle, setConfirmToggle] = useState<{ open: boolean; nextAtivo?: boolean }>({ open: false })
   const [confirmUnlink, setConfirmUnlink] = useState<{ open: boolean; unidadeId?: number; nome?: string }>({
     open: false,
@@ -139,6 +146,45 @@ export function TenantDetail() {
     }
   }
 
+  function openEditor() {
+    if (!tenant) return
+    setEditor({ open: true, nome: tenant.nome ?? '', clientId: tenant.clientId ?? '' })
+  }
+
+  function closeEditor() {
+    setEditor({ open: false })
+  }
+
+  async function saveEditor() {
+    if (!tenant) return
+    const nome = (editor.nome ?? '').trim()
+    const clientId = (editor.clientId ?? '').trim()
+
+    if (!nome) {
+      setToast({ kind: 'error', message: 'Informe o nome do tenant.' })
+      return
+    }
+    if (!clientId) {
+      setToast({ kind: 'error', message: 'Informe o clientId do tenant.' })
+      return
+    }
+    if (!/^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(clientId)) {
+      setToast({ kind: 'error', message: 'clientId inválido. Use minúsculas, números e hífen.' })
+      return
+    }
+
+    setEditor((s) => ({ ...s, loading: true }))
+    try {
+      await http.put(endpoints.apiClientUpdate(tenant.id), { nome, clientId, ativo: tenant.ativo })
+      setToast({ kind: 'success', message: 'Tenant atualizado com sucesso.' })
+      closeEditor()
+      await loadAll()
+    } catch (e: any) {
+      setToast({ kind: 'error', message: e?.message ?? 'Falha ao salvar tenant.' })
+      setEditor((s) => ({ ...s, loading: false }))
+    }
+  }
+
   async function unlinkUnidade() {
     const unidadeId = confirmUnlink.unidadeId
     if (!tenant || !unidadeId) return
@@ -191,6 +237,11 @@ export function TenantDetail() {
             <Button variant="ghost" onClick={() => nav('/api-clients')}>
               Voltar
             </Button>
+            {tenant ? (
+              <Button variant="ghost" onClick={openEditor}>
+                Editar
+              </Button>
+            ) : null}
             {tenant ? (
               <Button variant={tenant.ativo ? 'danger' : 'primary'} onClick={() => setConfirmToggle({ open: true })}>
                 {tenant.ativo ? 'Desativar' : 'Ativar'}
@@ -314,6 +365,42 @@ export function TenantDetail() {
           </div>
         ) : null}
       </Card>
+
+      {editor.open ? (
+        <div className="awis-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="awis-modal">
+            <Card
+              title="Editar tenant"
+              subtitle="Ajuste nome e clientId. Unidades vinculadas não são afetadas."
+              right={
+                <Button variant="ghost" onClick={closeEditor} disabled={!!editor.loading}>
+                  Fechar
+                </Button>
+              }
+            >
+              <div className="awis-stack" style={{ gap: 12 }}>
+                <Input
+                  label="Nome"
+                  value={editor.nome ?? ''}
+                  onChange={(e) => setEditor((s) => ({ ...s, nome: e.target.value }))}
+                  disabled={!!editor.loading}
+                />
+                <Input
+                  label="clientId"
+                  value={editor.clientId ?? ''}
+                  onChange={(e) => setEditor((s) => ({ ...s, clientId: e.target.value.toLowerCase() }))}
+                  disabled={!!editor.loading}
+                />
+                <div className="awis-row" style={{ justifyContent: 'flex-end', gap: 10 }}>
+                  <Button variant="primary" onClick={saveEditor} disabled={!!editor.loading}>
+                    {editor.loading ? 'Salvando…' : 'Salvar'}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={confirmToggle.open}

@@ -43,6 +43,14 @@ export function UsersPage() {
 
   const [toast, setToast] = useState<ToastState>(null)
 
+  function clearFilters() {
+    setQ('')
+    setStatus('')
+    setRole('')
+    setEmpresaFilter(isAwis ? '' : String(empresaId || ''))
+    load({ page: 0 })
+  }
+
   const [rolesModal, setRolesModal] = useState<{
     open: boolean
     user?: AdminUserListItem
@@ -184,6 +192,24 @@ export function UsersPage() {
             </div>
           ) : null}
 
+          <div style={{ width: 160 }}>
+            <Select
+              label="Por página"
+              value={String(size)}
+              onChange={(e) => {
+                const next = Number(e.target.value)
+                setSize(next)
+                load({ page: 0, size: next })
+              }}
+            >
+              {[10, 20, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </Select>
+          </div>
+
           <Button
             variant="primary"
             onClick={() => load({ page: 0 })}
@@ -195,7 +221,21 @@ export function UsersPage() {
           <Button variant="ghost" onClick={() => load()} disabled={loading}>
             Recarregar
           </Button>
+
+          <Button variant="ghost" onClick={clearFilters} disabled={loading}>
+            Limpar filtros
+          </Button>
         </div>
+
+        {/* chips ativos */}
+        {(q || status || role || (isAwis && empresaFilter.trim())) ? (
+          <div className="awis-row awis-row--wrap" style={{ gap: 8, marginTop: 10 }}>
+            {q ? <Badge variant="muted">Busca: {q}</Badge> : null}
+            {status ? <Badge variant="muted">Status: {status}</Badge> : null}
+            {role ? <Badge variant="muted">Role: {role}</Badge> : null}
+            {isAwis && empresaFilter.trim() ? <Badge variant="muted">Empresa: {empresaFilter.trim()}</Badge> : null}
+          </div>
+        ) : null}
 
         <div style={{ height: 14 }} />
 
@@ -250,7 +290,17 @@ export function UsersPage() {
 
             <div style={{ height: 10 }} />
 
-            <div className="awis-table" role="table" aria-label="Lista de usuários">
+            <div
+              className="awis-table"
+              role="table"
+              aria-label="Lista de usuários"
+              style={{
+                // Grid responsivo e consistente com cabeçalho/linhas
+                ...(isAwis
+                  ? ({ ['--cols' as any]: '90px 110px 1fr 120px 220px 140px' } as any)
+                  : ({ ['--cols' as any]: '90px 1fr 120px 220px 140px' } as any)),
+              }}
+            >
               <div className="awis-tr awis-th" role="row">
                 <div role="columnheader">ID</div>
                 {isAwis ? <div role="columnheader">Empresa</div> : null}

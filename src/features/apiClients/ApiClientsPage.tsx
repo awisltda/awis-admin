@@ -18,6 +18,37 @@ export function ApiClientsPage() {
   const [q, setQ] = useState('')
   const [toast, setToast] = useState<ToastState>(null)
 
+  // Escopos conhecidos (UX: seleção guiada + preview do payload)
+  const SCOPE_OPTIONS = useMemo(
+    () =>
+      [
+        'read:unidades',
+        'read:pessoas',
+        'write:pessoas',
+        'read:contratos',
+        'write:contratos',
+        'read:dependentes',
+        'write:dependentes',
+        'read:duplicatas',
+        'read:planos',
+        'read:parceiros',
+      ] as const,
+    []
+  )
+
+  const [editor, setEditor] = useState<{
+    open: boolean
+    mode?: 'NEW' | 'EDIT'
+    loading?: boolean
+    id?: number
+    nome?: string
+    clientId?: string
+    empresaId?: string
+    clientSecret?: string
+    scopes?: string[]
+    ativo?: boolean
+  }>({ open: false })
+
   const [confirm, setConfirm] = useState<{
     open: boolean
     id?: number
@@ -40,6 +71,123 @@ export function ApiClientsPage() {
   useEffect(() => {
     load()
   }, [])
+
+  function openNew() {
+    setEditor({
+      open: true,
+      mode: 'NEW',
+      nome: '',
+      clientId: '',
+      empresaId: '',
+      clientSecret: '',
+      // Por padrão, liberamos a suíte completa de escopos atuais.
+      // Ajuste conforme o tipo de integração do parceiro.
+      scopes: [...SCOPE_OPTIONS],
+      ativo: true,
+    })
+  }
+
+  function openEdit(it: ApiClientResponse) {
+    setEditor({
+      open: true,
+      mode: 'EDIT',
+      id: it.id,
+      nome: it.nome ?? '',
+      clientId: it.clientId ?? '',
+      ativo: !!it.ativo,
+    })
+  }
+
+  function closeEditor() {
+    setEditor({ open: false })
+  }
+
+  async function saveEditor() {
+    const nome = (editor.nome ?? '').trim()
+    const clientId = (editor.clientId ?? '').trim()
+
+    const isCreate = editor.mode !== 'EDIT'
+    const empresaIdRaw = (editor.empresaId ?? '').trim()
+    const clientSecret = (editor.clientSecret ?? '').trim()
+    const scopesList = (editor.scopes ?? []).filter(Boolean)
+    const escopos = scopesList.join(' ').trim()
+
+    if (!nome) {
+      setToast({ kind: 'error', message: 'Informe o nome do tenant.' })
+      return
+    }
+    if (!clientId) {
+      setToast({ kind: 'error', message: 'Informe o clientId do tenant.' })
+      return
+    }
+    if (!/^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(clientId)) {
+      setToast({
+        kind: 'error',
+        message:
+          'clientId inválido. Use minúsculas, números e hífen (ex: "pax-santacruz").',
+      })
+      return
+    }
+
+    if (isCreate) {
+      const empresaId = Number(empresaIdRaw)
+      if (!empresaIdRaw || !Number.isFinite(empresaId) || empresaId <= 0) {
+        setToast({ kind: 'error', message: 'Informe um empresaId válido (ex: 274).' })
+        return
+      }
+      if (!clientSecret || clientSecret.length < 8) {
+        setToast({ kind: 'error', message: 'Informe um clientSecret com pelo menos 8 caracteres.' })
+        return
+      }
+      if (!escopos) {
+        setToast({ kind: 'error', message: 'Selecione ao menos 1 escopo de acesso.' })
+        return
+      }
+    }
+
+    setEditor((s) => ({ ...s, loading: true }))
+    try {
+      if (editor.mode === 'EDIT' && editor.id) {
+        // Observação: a API atual do Progem expõe somente (nome, clientId, ativo) na leitura.
+        // Mantemos o update enxuto e seguro.
+        const payload = { nome, clientId, ativo: editor.ativo !== false }
+        await http.put(endpoints.apiClientUpdate(editor.id), payload)
+        setToast({ kind: 'success', message: 'Tenant atualizado com sucesso.' })
+      } else {
+        const payload = {
+          nome,
+          clientId,
+          clientSecret,
+          escopos,
+          empresaId: Number(empresaIdRaw),
+        }
+        await http.post(endpoints.apiClientCreate(), payload)
+        setToast({ kind: 'success', message: 'Tenant criado com sucesso.' })
+      }
+      closeEditor()
+      await load()
+    } catch (e: any) {
+      setToast({ kind: 'error', message: e?.message ?? 'Falha ao salvar tenant.' })
+      setEditor((s) => ({ ...s, loading: false }))
+    }
+  }
+
+  function toggleScope(scope: string) {
+    setEditor((s) => {
+      const cur = new Set<string>(s.scopes ?? [])
+      if (cur.has(scope)) cur.delete(scope)
+      else cur.add(scope)
+      return { ...s, scopes: Array.from(cur) }
+    })
+  }
+
+  function selectAllScopes() {
+    setEditor((s) => ({ ...s, scopes: [...SCOPE_OPTIONS] }))
+  }
+
+  function clearScopes() {
+    setEditor((s) => ({ ...s, scopes: [] }))
+  }
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -86,7 +234,15 @@ export function ApiClientsPage() {
     <div className="awis-stack">
       {toast ? <Toast kind={toast.kind} message={toast.message} onClose={() => setToast(null)} /> : null}
 
-      <Card title="API Clients" subtitle="Cadastro e controle de clientes da API (tenants).">
+      <Card
+        title="Tenants"
+        subtitle="Cadastro e controle de clientes da API (tenants)."
+        right={
+          <Button variant="primary" onClick={openNew}>
+            Novo tenant
+          </Button>
+        }
+      >
         <div className="awis-row awis-row--wrap" style={{ gap: 12, alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <Input
@@ -133,7 +289,7 @@ export function ApiClientsPage() {
 
         {/* Table */}
         {showTable ? (
-          <div className="awis-table" role="table" aria-label="Lista de API Clients">
+          <div className="awis-table" role="table" aria-label="Lista de tenants" style={{ ['--cols' as any]: '90px 1.2fr 130px 220px' }}>
             <div className="awis-tr awis-th" role="row">
               <div role="columnheader">ID</div>
               <div role="columnheader">Nome</div>
@@ -168,6 +324,9 @@ export function ApiClientsPage() {
                 </div>
 
                 <div data-label="Ações" className="awis-cell-actions" role="cell">
+                  <Button variant="ghost" onClick={() => openEdit(it)}>
+                    Editar
+                  </Button>
                   <Button variant={it.ativo ? 'danger' : 'primary'} onClick={() => askToggle(it)}>
                     {it.ativo ? 'Desativar' : 'Ativar'}
                   </Button>
@@ -177,6 +336,135 @@ export function ApiClientsPage() {
           </div>
         ) : null}
       </Card>
+
+      {/* Modal Create / Edit */}
+      {editor.open ? (
+        <div className="awis-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="awis-modal">
+            <Card
+              title={editor.mode === 'EDIT' ? 'Editar tenant' : 'Novo tenant'}
+              subtitle="Nome e clientId determinam a identificação do tenant na integração."
+              right={
+                <Button variant="ghost" onClick={closeEditor} disabled={!!editor.loading}>
+                  Fechar
+                </Button>
+              }
+            >
+              <div className="awis-stack" style={{ gap: 12 }}>
+                <Input
+                  label="Nome"
+                  placeholder="Ex: FUNERÁRIA SÃO BENTO"
+                  value={editor.nome ?? ''}
+                  onChange={(e) => setEditor((s) => ({ ...s, nome: e.target.value }))}
+                  disabled={!!editor.loading}
+                />
+                <Input
+                  label="clientId"
+                  placeholder="ex: saobento"
+                  value={editor.clientId ?? ''}
+                  onChange={(e) => setEditor((s) => ({ ...s, clientId: e.target.value.toLowerCase() }))}
+                  disabled={!!editor.loading || editor.mode === 'EDIT'}
+                />
+
+                {editor.mode !== 'EDIT' ? (
+                  <div className="awis-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Input
+                      label="empresaId"
+                      placeholder="ex: 274"
+                      value={editor.empresaId ?? ''}
+                      onChange={(e) => setEditor((s) => ({ ...s, empresaId: e.target.value }))}
+                      disabled={!!editor.loading}
+                    />
+                    <Input
+                      label="clientSecret"
+                      placeholder="Ex: SENHA_SUPER_FORTE"
+                      value={editor.clientSecret ?? ''}
+                      onChange={(e) => setEditor((s) => ({ ...s, clientSecret: e.target.value }))}
+                      disabled={!!editor.loading}
+                      type="password"
+                    />
+                  </div>
+                ) : null}
+
+                {editor.mode !== 'EDIT' ? (
+                  <div className="awis-stack" style={{ gap: 10 }}>
+                    <div className="awis-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>Escopos</div>
+                        <div className="awis-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                          Definem quais recursos a integração poderá consumir.
+                        </div>
+                      </div>
+                      <div className="awis-row" style={{ gap: 10 }}>
+                        <Button variant="ghost" onClick={selectAllScopes} disabled={!!editor.loading}>
+                          Selecionar tudo
+                        </Button>
+                        <Button variant="ghost" onClick={clearScopes} disabled={!!editor.loading}>
+                          Limpar
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div
+                      className="awis-grid"
+                      style={{
+                        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                        gap: 10,
+                        padding: 12,
+                        border: '1px solid var(--border)',
+                        borderRadius: 14,
+                        background: 'rgba(255,255,255,0.02)',
+                      }}
+                    >
+                      {SCOPE_OPTIONS.map((s) => {
+                        const checked = (editor.scopes ?? []).includes(s)
+                        return (
+                          <label
+                            key={s}
+                            className="awis-row"
+                            style={{ gap: 10, userSelect: 'none', padding: '8px 10px', borderRadius: 12 }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleScope(s)}
+                              disabled={!!editor.loading}
+                            />
+                            <span className="awis-mono" style={{ fontSize: 12 }}>{s}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+
+                    <div className="awis-muted" style={{ fontSize: 12 }}>
+                      Payload gerado: <span className="awis-mono">escopos</span> ={' '}
+                      <span className="awis-mono">{(editor.scopes ?? []).join(' ') || '—'}</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="awis-row" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                  <label className="awis-row" style={{ gap: 10, userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={editor.ativo !== false}
+                      onChange={(e) => setEditor((s) => ({ ...s, ativo: e.target.checked }))}
+                      disabled={!!editor.loading}
+                    />
+                    <span style={{ fontWeight: 600 }}>Ativo</span>
+                  </label>
+
+                  <div className="awis-row" style={{ gap: 10 }}>
+                    <Button variant="primary" onClick={saveEditor} disabled={!!editor.loading}>
+                      {editor.loading ? 'Salvando…' : 'Salvar'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={confirm.open}
