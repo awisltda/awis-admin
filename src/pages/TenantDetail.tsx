@@ -11,39 +11,19 @@ import { endpoints } from '../api/endpoints'
 
 type ToastState = { kind: 'success' | 'error'; message: string } | null
 
-type ApiClient = {
+type ApiClientDetail = {
   id: number
   nome: string
   clientId: string
   ativo: boolean
+  empresaId: number // ✅ matriz
+  escopos?: string
 }
 
 type ApiClientUnidade = {
   id: number
   apiClientId: number
   unidadeId: number
-}
-
-type UnidadeDetalhada = {
-  id: number
-  nomeFantasia: string
-  razaoSocial: string
-  cnpj: string
-  contato?: { telefone?: string; email?: string }
-  endereco?: {
-    cep?: string
-    cidade?: string
-    uf?: string
-    bairro?: string
-    logradouro?: string
-    numero?: string
-    complemento?: string
-    latitude?: string
-    longitude?: string
-  }
-  corPrincipal?: string
-  corSecundaria?: string
-  urlLogo?: string
 }
 
 function toNumber(v: unknown) {
@@ -56,41 +36,28 @@ export function TenantDetail() {
   const { id } = useParams()
   const apiClientId = toNumber(id)
 
-  const [tenant, setTenant] = useState<ApiClient | null>(null)
+  const [tenant, setTenant] = useState<ApiClientDetail | null>(null)
   const [vinculos, setVinculos] = useState<ApiClientUnidade[]>([])
-  const [unidades, setUnidades] = useState<UnidadeDetalhada[]>([])
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<ToastState>(null)
 
-  const [editor, setEditor] = useState<{
-    open: boolean
-    loading?: boolean
-    nome?: string
-    clientId?: string
-  }>({ open: false })
+  const [confirmToggle, setConfirmToggle] = useState<{ open: boolean }>({ open: false })
+  const [confirmUnlink, setConfirmUnlink] = useState<{ open: boolean; unidadeId?: number }>({ open: false })
 
-  const [confirmToggle, setConfirmToggle] = useState<{ open: boolean; nextAtivo?: boolean }>({ open: false })
-  const [confirmUnlink, setConfirmUnlink] = useState<{ open: boolean; unidadeId?: number; nome?: string }>({
-    open: false,
-  })
-
-  const [q, setQ] = useState('')
-  const [selectedUnidadeId, setSelectedUnidadeId] = useState<string>('')
+  // ✅ Campo operacional: outras unidades (sem pesquisa)
+  const [outraUnidadeId, setOutraUnidadeId] = useState<string>('')
   const [linking, setLinking] = useState(false)
 
   async function loadAll() {
     if (!apiClientId) return
     setLoading(true)
     try {
-      const [t, v, u] = await Promise.all([
-        http.get<ApiClient>(endpoints.apiClientById(apiClientId)),
+      const [t, v] = await Promise.all([
+        http.get<ApiClientDetail>(endpoints.apiClientDetail(apiClientId)),
         http.get<ApiClientUnidade[]>(endpoints.apiClientUnidades(apiClientId)),
-        http.get<UnidadeDetalhada[]>(endpoints.empresaUnidades()),
       ])
-
       setTenant(t)
       setVinculos(Array.isArray(v) ? v : [])
-      setUnidades(Array.isArray(u) ? u : [])
     } catch (e: any) {
       setToast({ kind: 'error', message: e?.message ?? 'Falha ao carregar detalhes do tenant.' })
     } finally {
@@ -103,35 +70,21 @@ export function TenantDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiClientId])
 
-  const unidadesById = useMemo(() => {
-    const map = new Map<number, UnidadeDetalhada>()
-    for (const u of unidades) map.set(u.id, u)
-    return map
-  }, [unidades])
+  const matrizId = tenant?.empresaId ?? 0
 
-  const vinculadas = useMemo(() => {
-    return vinculos
-      .map((v) => ({ v, u: unidadesById.get(v.unidadeId) }))
-      .sort((a, b) => (a.u?.nomeFantasia ?? '').localeCompare(b.u?.nomeFantasia ?? ''))
-  }, [vinculos, unidadesById])
+  const vinculosOrdenados = useMemo(() => {
+    return [...vinculos].sort((a, b) => a.unidadeId - b.unidadeId)
+  }, [vinculos])
 
-  const vinculadasIds = useMemo(() => new Set(vinculos.map((v) => v.unidadeId)), [vinculos])
+  const temMatrizVinculada = useMemo(() => {
+    if (!matrizId) return false
+    return vinculos.some((v) => v.unidadeId === matrizId)
+  }, [vinculos, matrizId])
 
-  const disponiveis = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    return unidades
-      .filter((u) => !vinculadasIds.has(u.id))
-      .filter((u) => {
-        if (!s) return true
-        return (
-          u.nomeFantasia.toLowerCase().includes(s) ||
-          u.razaoSocial.toLowerCase().includes(s) ||
-          u.cnpj.replace(/\D/g, '').includes(s.replace(/\D/g, '')) ||
-          String(u.id).includes(s)
-        )
-      })
-      .slice(0, 25)
-  }, [unidades, vinculadasIds, q])
+  const outrasUnidades = useMemo(() => {
+    if (!matrizId) return vinculosOrdenados
+    return vinculosOrdenados.filter((v) => v.unidadeId !== matrizId)
+  }, [vinculosOrdenados, matrizId])
 
   async function toggleTenant() {
     if (!tenant) return
@@ -146,48 +99,17 @@ export function TenantDetail() {
     }
   }
 
-  function openEditor() {
-    if (!tenant) return
-    setEditor({ open: true, nome: tenant.nome ?? '', clientId: tenant.clientId ?? '' })
-  }
-
-  function closeEditor() {
-    setEditor({ open: false })
-  }
-
-  async function saveEditor() {
-    if (!tenant) return
-    const nome = (editor.nome ?? '').trim()
-    const clientId = (editor.clientId ?? '').trim()
-
-    if (!nome) {
-      setToast({ kind: 'error', message: 'Informe o nome do tenant.' })
-      return
-    }
-    if (!clientId) {
-      setToast({ kind: 'error', message: 'Informe o clientId do tenant.' })
-      return
-    }
-    if (!/^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(clientId)) {
-      setToast({ kind: 'error', message: 'clientId inválido. Use minúsculas, números e hífen.' })
-      return
-    }
-
-    setEditor((s) => ({ ...s, loading: true }))
-    try {
-      await http.put(endpoints.apiClientUpdate(tenant.id), { nome, clientId, ativo: tenant.ativo })
-      setToast({ kind: 'success', message: 'Tenant atualizado com sucesso.' })
-      closeEditor()
-      await loadAll()
-    } catch (e: any) {
-      setToast({ kind: 'error', message: e?.message ?? 'Falha ao salvar tenant.' })
-      setEditor((s) => ({ ...s, loading: false }))
-    }
-  }
-
   async function unlinkUnidade() {
     const unidadeId = confirmUnlink.unidadeId
     if (!tenant || !unidadeId) return
+
+    // 🔒 Proteção: não permitir desvincular matriz
+    if (unidadeId === tenant.empresaId) {
+      setConfirmUnlink({ open: false })
+      setToast({ kind: 'error', message: 'A matriz não pode ser desvinculada. Ela é obrigatória.' })
+      return
+    }
+
     setConfirmUnlink({ open: false })
     try {
       await http.del(endpoints.apiClientDesvincularUnidade(tenant.id, unidadeId))
@@ -198,15 +120,25 @@ export function TenantDetail() {
     }
   }
 
-  async function linkUnidade() {
-    const unidadeId = Number(selectedUnidadeId)
-    if (!tenant || !unidadeId) return
+  async function vincularOutraUnidade() {
+    if (!tenant) return
+
+    const unidadeId = Number(String(outraUnidadeId ?? '').trim())
+    if (!outraUnidadeId.trim() || !Number.isFinite(unidadeId) || unidadeId <= 0) {
+      setToast({ kind: 'error', message: 'Informe um unidadeId válido (empresaId da unidade), ex: 234.' })
+      return
+    }
+
+    if (unidadeId === tenant.empresaId) {
+      setToast({ kind: 'error', message: 'Esta unidade é a matriz (empresaId). Ela já deve estar vinculada automaticamente.' })
+      return
+    }
+
     setLinking(true)
     try {
       await http.put(endpoints.apiClientVincularUnidade(tenant.id, unidadeId))
-      setToast({ kind: 'success', message: 'Unidade vinculada com sucesso.' })
-      setSelectedUnidadeId('')
-      setQ('')
+      setToast({ kind: 'success', message: `Unidade vinculada com sucesso (#${unidadeId}).` })
+      setOutraUnidadeId('')
       await loadAll()
     } catch (e: any) {
       setToast({ kind: 'error', message: e?.message ?? 'Falha ao vincular unidade.' })
@@ -231,17 +163,12 @@ export function TenantDetail() {
 
       <Card
         title={tenant ? tenant.nome : `Tenant #${apiClientId}`}
-        subtitle="Detalhes do API Client, vínculo de unidades e distribuição do tenant."
+        subtitle="Detalhes do API Client e distribuição de unidades."
         right={
           <div className="awis-row" style={{ gap: 10 }}>
             <Button variant="ghost" onClick={() => nav('/api-clients')}>
               Voltar
             </Button>
-            {tenant ? (
-              <Button variant="ghost" onClick={openEditor}>
-                Editar
-              </Button>
-            ) : null}
             {tenant ? (
               <Button variant={tenant.ativo ? 'danger' : 'primary'} onClick={() => setConfirmToggle({ open: true })}>
                 {tenant.ativo ? 'Desativar' : 'Ativar'}
@@ -266,93 +193,115 @@ export function TenantDetail() {
           <div className="awis-stack" style={{ gap: 14 }}>
             <div className="awis-row awis-row--wrap" style={{ gap: 10 }}>
               <Badge>{tenant.ativo ? 'ATIVO' : 'INATIVO'}</Badge>
+
               <Badge variant="muted">
                 clientId: <span className="awis-mono">{tenant.clientId}</span>
               </Badge>
-              <Badge variant="muted">
-                id: <span className="awis-mono">{tenant.id}</span>
+
+              {/* ✅ DESTAQUE: X-Progem-ID = empresaId */}
+              <Badge>
+                X-Progem-ID (matriz): <span className="awis-mono">{tenant.empresaId}</span>
               </Badge>
+
+              <Badge variant="muted">
+                apiClientId: <span className="awis-mono">{tenant.id}</span>
+              </Badge>
+            </div>
+
+            {!temMatrizVinculada ? (
+              <div className="awis-callout awis-callout--warn">
+                <div style={{ fontWeight: 700 }}>Atenção</div>
+                <div className="awis-muted" style={{ marginTop: 4 }}>
+                  A unidade matriz (<span className="awis-mono">{tenant.empresaId}</span>) não aparece vinculada em{' '}
+                  <span className="awis-mono">api_client_unidades</span>. Isso indica inconsistência em base antiga.
+                  Crie o vínculo da matriz automaticamente no backend (create/update) ou execute um reparo.
+                </div>
+              </div>
+            ) : null}
+
+            <div className="awis-divider" />
+
+            {/* MATRIZ (fixa) */}
+            <div>
+              <div className="awis-section-title">Matriz (fixa)</div>
+              <div className="awis-muted" style={{ marginTop: 4 }}>
+                A matriz é definida por <span className="awis-mono">api_client.empresa_id</span> e sempre deve estar
+                vinculada automaticamente na tabela <span className="awis-mono">api_client_unidades</span>.
+              </div>
+
+              <div style={{ height: 10 }} />
+
+              <div className="awis-list" role="list">
+                <div className="awis-list-item" role="listitem">
+                  <div style={{ minWidth: 0 }}>
+                    <div className="awis-list-title">Unidade matriz #{tenant.empresaId}</div>
+                    <div className="awis-muted" style={{ fontSize: 12 }}>
+                      X-Progem-ID: <span className="awis-mono">{tenant.empresaId}</span>
+                    </div>
+                  </div>
+
+                  <Badge variant="muted">OBRIGATÓRIA</Badge>
+                </div>
+              </div>
             </div>
 
             <div className="awis-divider" />
 
-            {/* Vincular unidade */}
+            {/* OUTRAS UNIDADES (operacional) */}
             <div className="awis-grid-2">
               <div>
-                <div className="awis-section-title">Vincular unidade</div>
+                <div className="awis-section-title">Vincular outras unidades</div>
                 <div className="awis-muted" style={{ marginTop: 4 }}>
-                  Selecione uma unidade da empresa (Progem) para disponibilizar este tenant.
+                  Informe o <span className="awis-mono">unidadeId</span> (empresaId da unidade) para distribuir este
+                  API Client para outras unidades além da matriz. Sem pesquisa.
                 </div>
 
                 <div style={{ height: 10 }} />
-                <Input
-                  label="Buscar unidade"
-                  placeholder="Buscar por nome, CNPJ ou ID…"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
-
-                <div style={{ height: 10 }} />
-
-                <div className="awis-select">
-                  <label className="awis-label">Unidade disponível</label>
-                  <select value={selectedUnidadeId} onChange={(e) => setSelectedUnidadeId(e.target.value)}>
-                    <option value="">Selecione…</option>
-                    {disponiveis.map((u) => (
-                      <option key={u.id} value={String(u.id)}>
-                        {u.nomeFantasia} (#{u.id})
-                      </option>
-                    ))}
-                  </select>
+                <div className="awis-row awis-row--wrap" style={{ gap: 12, alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1, minWidth: 240 }}>
+                    <Input
+                      label="unidadeId (empresaId)"
+                      placeholder="Ex: 234"
+                      value={outraUnidadeId}
+                      onChange={(e) => setOutraUnidadeId(e.target.value)}
+                      disabled={linking}
+                    />
+                  </div>
+                  <Button variant="primary" onClick={vincularOutraUnidade} disabled={!outraUnidadeId.trim() || linking}>
+                    {linking ? 'Vinculando…' : 'Vincular unidade'}
+                  </Button>
                 </div>
-
-                <div style={{ height: 12 }} />
-                <Button disabled={!selectedUnidadeId || linking} onClick={linkUnidade}>
-                  {linking ? 'Vinculando…' : 'Vincular'}
-                </Button>
               </div>
 
               <div>
-                <div className="awis-section-title">Unidades vinculadas</div>
+                <div className="awis-section-title">Unidades adicionais</div>
                 <div className="awis-muted" style={{ marginTop: 4 }}>
-                  Estas unidades já estão distribuídas para este tenant.
+                  Unidades vinculadas além da matriz. Aqui pode desvincular.
                 </div>
 
                 <div style={{ height: 10 }} />
 
-                {vinculadas.length === 0 ? (
+                {outrasUnidades.length === 0 ? (
                   <div className="awis-state" style={{ padding: 14 }}>
-                    <div className="awis-state-title">Nenhuma unidade vinculada</div>
-                    <div className="awis-state-sub">Vincule ao menos uma unidade para liberar o uso.</div>
+                    <div className="awis-state-title">Nenhuma unidade adicional vinculada</div>
+                    <div className="awis-state-sub">Vincule uma unidade pelo ID para distribuir o tenant.</div>
                   </div>
                 ) : (
                   <div className="awis-list" role="list">
-                    {vinculadas.map(({ v, u }) => {
-                      const nome = u?.nomeFantasia ?? `Unidade #${v.unidadeId}`
-                      return (
-                        <div key={v.id} className="awis-list-item" role="listitem">
-                          <div style={{ minWidth: 0 }}>
-                            <div className="awis-list-title">{nome}</div>
-                            <div className="awis-muted" style={{ fontSize: 12 }}>
-                              unidadeId: <span className="awis-mono">{v.unidadeId}</span>
-                              {u?.cnpj ? (
-                                <>
-                                  {' '}
-                                  • CNPJ: <span className="awis-mono">{u.cnpj}</span>
-                                </>
-                              ) : null}
-                            </div>
+                    {outrasUnidades.map((v) => (
+                      <div key={v.id} className="awis-list-item" role="listitem">
+                        <div style={{ minWidth: 0 }}>
+                          <div className="awis-list-title">Unidade #{v.unidadeId}</div>
+                          <div className="awis-muted" style={{ fontSize: 12 }}>
+                            unidadeId: <span className="awis-mono">{v.unidadeId}</span>
                           </div>
-
-                          <Button
-                            variant="ghost"
-                            onClick={() => setConfirmUnlink({ open: true, unidadeId: v.unidadeId, nome })}
-                          >
-                            Desvincular
-                          </Button>
                         </div>
-                      )
-                    })}
+
+                        <Button variant="ghost" onClick={() => setConfirmUnlink({ open: true, unidadeId: v.unidadeId })}>
+                          Desvincular
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -360,47 +309,15 @@ export function TenantDetail() {
 
             <div className="awis-divider" />
             <div className="awis-muted">
-              <span className="awis-mono">Dica:</span> volte para <Link className="awis-link" to="/api-clients">API Clients</Link> para visualizar todos os tenants.
+              <span className="awis-mono">Dica:</span> volte para{' '}
+              <Link className="awis-link" to="/api-clients">
+                API Clients
+              </Link>{' '}
+              para visualizar todos os tenants.
             </div>
           </div>
         ) : null}
       </Card>
-
-      {editor.open ? (
-        <div className="awis-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="awis-modal">
-            <Card
-              title="Editar tenant"
-              subtitle="Ajuste nome e clientId. Unidades vinculadas não são afetadas."
-              right={
-                <Button variant="ghost" onClick={closeEditor} disabled={!!editor.loading}>
-                  Fechar
-                </Button>
-              }
-            >
-              <div className="awis-stack" style={{ gap: 12 }}>
-                <Input
-                  label="Nome"
-                  value={editor.nome ?? ''}
-                  onChange={(e) => setEditor((s) => ({ ...s, nome: e.target.value }))}
-                  disabled={!!editor.loading}
-                />
-                <Input
-                  label="clientId"
-                  value={editor.clientId ?? ''}
-                  onChange={(e) => setEditor((s) => ({ ...s, clientId: e.target.value.toLowerCase() }))}
-                  disabled={!!editor.loading}
-                />
-                <div className="awis-row" style={{ justifyContent: 'flex-end', gap: 10 }}>
-                  <Button variant="primary" onClick={saveEditor} disabled={!!editor.loading}>
-                    {editor.loading ? 'Salvando…' : 'Salvar'}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      ) : null}
 
       <ConfirmDialog
         open={confirmToggle.open}
@@ -419,7 +336,7 @@ export function TenantDetail() {
       <ConfirmDialog
         open={confirmUnlink.open}
         title="Desvincular unidade"
-        description={`Confirma desvincular a unidade "${confirmUnlink.nome ?? '—'}" deste tenant?`}
+        description="Confirma desvincular esta unidade adicional deste tenant?"
         confirmText="Desvincular"
         danger
         onConfirm={unlinkUnidade}

@@ -17,6 +17,7 @@ export function ApiClientsPage() {
   const [loading, setLoading] = useState(false)
   const [q, setQ] = useState('')
   const [toast, setToast] = useState<ToastState>(null)
+  const [revealSecret, setRevealSecret] = useState(false)
 
   // Escopos conhecidos (UX: seleção guiada + preview do payload)
   const SCOPE_OPTIONS = useMemo(
@@ -47,6 +48,7 @@ export function ApiClientsPage() {
     clientSecret?: string
     scopes?: string[]
     ativo?: boolean
+    originalAtivo?: boolean
   }>({ open: false })
 
   const [confirm, setConfirm] = useState<{
@@ -73,6 +75,10 @@ export function ApiClientsPage() {
   }, [])
 
   function openNew() {
+    // UX: ao iniciar um cadastro, não faz sentido manter filtros antigos na listagem.
+    // Também previne autofill indevido do navegador (ex: "128").
+    setQ('')
+    setRevealSecret(false)
     setEditor({
       open: true,
       mode: 'NEW',
@@ -88,14 +94,14 @@ export function ApiClientsPage() {
   }
 
   function openEdit(it: ApiClientResponse) {
+    setRevealSecret(false)
     setEditor({
       open: true,
       mode: 'EDIT',
       id: it.id,
       nome: it.nome ?? '',
       clientId: it.clientId ?? '',
-      // Edição completa ainda não existe na API (por enquanto, apenas status).
-      // Mantemos os campos para reutilizar a mesma tela de criação.
+      // A API de listagem não retorna empresaId/escopos. Mantemos campos editáveis com placeholders.
       empresaId: '',
       clientSecret: '',
       scopes: [...SCOPE_OPTIONS],
@@ -105,6 +111,10 @@ export function ApiClientsPage() {
   }
 
   function closeEditor() {
+    // UX: ao fechar o modal de NOVO sem salvar, voltamos para a listagem sem aplicar filtros.
+    // (O filtro é aplicado automaticamente apenas quando há create/update bem-sucedido.)
+    if (editor.mode === 'NEW') setQ('')
+    setRevealSecret(false)
     setEditor({ open: false })
   }
 
@@ -112,8 +122,9 @@ export function ApiClientsPage() {
     const nome = (editor.nome ?? '').trim()
     const clientId = (editor.clientId ?? '').trim()
 
-    const isCreate = editor.mode !== 'EDIT'
     const empresaIdRaw = (editor.empresaId ?? '').trim()
+    const empresaId = Number(empresaIdRaw)
+
     const clientSecret = (editor.clientSecret ?? '').trim()
     const scopesList = (editor.scopes ?? []).filter(Boolean)
     const escopos = scopesList.join(' ').trim()
@@ -129,18 +140,17 @@ export function ApiClientsPage() {
     if (!/^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(clientId)) {
       setToast({
         kind: 'error',
-        message:
-          'clientId inválido. Use minúsculas, números e hífen (ex: "pax-santacruz").',
+        message: 'clientId inválido. Use minúsculas, números e hífen (ex: "pax-santacruz").',
       })
       return
     }
+    if (!empresaIdRaw || !Number.isFinite(empresaId) || empresaId <= 0) {
+      setToast({ kind: 'error', message: 'Informe um empresaId válido (ex: 274).' })
+      return
+    }
 
-    if (isCreate) {
-      const empresaId = Number(empresaIdRaw)
-      if (!empresaIdRaw || !Number.isFinite(empresaId) || empresaId <= 0) {
-        setToast({ kind: 'error', message: 'Informe um empresaId válido (ex: 274).' })
-        return
-      }
+    // CREATE: secret e ao menos 1 escopo são obrigatórios
+    if (editor.mode !== 'EDIT') {
       if (!clientSecret || clientSecret.length < 8) {
         setToast({ kind: 'error', message: 'Informe um clientSecret com pelo menos 8 caracteres.' })
         return
@@ -154,29 +164,39 @@ export function ApiClientsPage() {
     setEditor((s) => ({ ...s, loading: true }))
     try {
       if (editor.mode === 'EDIT' && editor.id) {
-        // Importante: ainda não existe endpoint de update completo do tenant.
-        // Para evitar "Method Not Allowed", tratamos aqui apenas a atualização de STATUS.
-        const nextAtivo = editor.ativo !== false
-
-        if (editor.originalAtivo != null && editor.originalAtivo !== nextAtivo) {
-          await http.patch(endpoints.apiClientToggleStatus(editor.id), { ativo: nextAtivo })
-          setToast({ kind: 'success', message: 'Status do tenant atualizado com sucesso.' })
-        } else {
-          setToast({ kind: 'success', message: 'Nenhuma alteração para salvar.' })
+        const payload: any = {
+          nome,
+          clientId,
+          empresaId,
+          escopos,
         }
+        // Se vier preenchido, troca o secret. Se vazio, mantém.
+        if (clientSecret) payload.clientSecret = clientSecret
+
+        await http.put<ApiClientResponse>(endpoints.apiClientUpdate(editor.id), payload)
+
+        // Se status mudou, atualiza via PATCH /status
+        const nextAtivo = editor.ativo !== false
+        if (editor.originalAtivo != null && editor.originalAtivo !== nextAtivo) {
+          await http.patch<ApiClientResponse>(endpoints.apiClientStatus(editor.id, nextAtivo))
+        }
+
+        // UX: após editar, filtra automaticamente pelo ID editado
+        setQ(String(editor.id))
+        setToast({ kind: 'success', message: 'Tenant atualizado com sucesso.' })
       } else {
         const payload = {
           nome,
           clientId,
           clientSecret,
           escopos,
-          empresaId: Number(empresaIdRaw),
+          empresaId,
         }
         const created = await http.post<ApiClientResponse>(endpoints.apiClientCreate(), payload)
-        // UX: ao criar, filtra automaticamente pelo ID recém criado
         if (created?.id != null) setQ(String(created.id))
         setToast({ kind: 'success', message: 'Tenant criado com sucesso.' })
       }
+
       closeEditor()
       await load()
     } catch (e: any) {
@@ -261,6 +281,8 @@ export function ApiClientsPage() {
             <Input
               label="Buscar"
               placeholder="Buscar por nome ou ID..."
+              name="tenant-search"
+              autoComplete="off"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -356,7 +378,7 @@ export function ApiClientsPage() {
           <div className="awis-modal">
             <Card
               title={editor.mode === 'EDIT' ? 'Editar tenant' : 'Novo tenant'}
-              subtitle="Nome e clientId determinam a identificação do tenant na integração."
+              subtitle="Edite nome, clientId, empresaId, escopos e (opcionalmente) o clientSecret."
               right={
                 <Button variant="ghost" onClick={closeEditor} disabled={!!editor.loading}>
                   Fechar
@@ -364,43 +386,70 @@ export function ApiClientsPage() {
               }
             >
               <div className="awis-modal-scroll">
-                <div className="awis-stack" style={{ gap: 12 }}>
-                <Input
-                  label="Nome"
-                  placeholder="Ex: FUNERÁRIA SÃO BENTO"
-                  value={editor.nome ?? ''}
-                  onChange={(e) => setEditor((s) => ({ ...s, nome: e.target.value }))}
-                  disabled={!!editor.loading}
-                />
-                <Input
-                  label="clientId"
-                  placeholder="ex: saobento"
-                  value={editor.clientId ?? ''}
-                  onChange={(e) => setEditor((s) => ({ ...s, clientId: e.target.value.toLowerCase() }))}
-                  disabled={!!editor.loading || editor.mode === 'EDIT'}
-                />
+                <div className="awis-stack" style={{ gap: 14 }}>
+                  <Input
+                    label="Nome"
+                    placeholder="Ex: FUNERÁRIA SÃO BENTO"
+                    name="tenant-nome"
+                    autoComplete="off"
+                    value={editor.nome ?? ''}
+                    onChange={(e) => setEditor((s) => ({ ...s, nome: e.target.value }))}
+                    disabled={!!editor.loading}
+                  />
 
-                {editor.mode !== 'EDIT' ? (
-                  <div className="awis-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="awis-grid-2" style={{ gap: 14 }}>
                     <Input
-                      label="empresaId"
-                      placeholder="ex: 274"
+                      label="clientId"
+                      placeholder="ex: saobento"
+                      name="tenant-clientId"
+                      autoComplete="off"
+                      value={editor.clientId ?? ''}
+                      onChange={(e) => setEditor((s) => ({ ...s, clientId: e.target.value.toLowerCase() }))}
+                      disabled={!!editor.loading}
+                    />
+                    <Input
+                      label="empresaId (X-Progem-ID)"
+                      placeholder={editor.mode === 'EDIT' ? 'Informe o empresaId (ex: 274)' : 'ex: 274'}
+                      name="tenant-empresaId"
+                      autoComplete="off"
+                      inputMode="numeric"
                       value={editor.empresaId ?? ''}
                       onChange={(e) => setEditor((s) => ({ ...s, empresaId: e.target.value }))}
                       disabled={!!editor.loading}
                     />
-                    <Input
-                      label="clientSecret"
-                      placeholder="Ex: SENHA_SUPER_FORTE"
-                      value={editor.clientSecret ?? ''}
-                      onChange={(e) => setEditor((s) => ({ ...s, clientSecret: e.target.value }))}
-                      disabled={!!editor.loading}
-                      type="password"
-                    />
                   </div>
-                ) : null}
 
-                {editor.mode !== 'EDIT' ? (
+                  <Input
+                    label={editor.mode === 'EDIT' ? 'clientSecret (opcional)' : 'clientSecret'}
+                    placeholder={
+                      editor.mode === 'EDIT' ? 'Deixe em branco para manter o atual' : 'Ex: SENHA_SUPER_FORTE'
+                    }
+                    name="tenant-clientSecret"
+                    autoComplete="new-password"
+                    value={editor.clientSecret ?? ''}
+                    onChange={(e) => setEditor((s) => ({ ...s, clientSecret: e.target.value }))}
+                    disabled={!!editor.loading}
+                    type={revealSecret ? 'text' : 'password'}
+                    rightSlot={
+                      <button
+                        type="button"
+                        className="awis-input-action"
+                        onClick={() => setRevealSecret((v) => !v)}
+                        disabled={!!editor.loading}
+                        aria-label={revealSecret ? 'Ocultar clientSecret' : 'Mostrar clientSecret'}
+                        title={revealSecret ? 'Ocultar' : 'Mostrar'}
+                      >
+                        {revealSecret ? 'Ocultar' : 'Mostrar'}
+                      </button>
+                    }
+                  />
+
+                  <div className="hint" style={{ marginTop: -6 }}>
+                    {editor.mode === 'EDIT'
+                      ? 'Para manter o clientSecret atual, deixe este campo em branco.'
+                      : 'Guarde este clientSecret com segurança. Ele será usado na autenticação do cliente.'}
+                  </div>
+
                   <details className="awis-details" open>
                     <summary className="awis-details-summary">
                       <div>
@@ -442,12 +491,11 @@ export function ApiClientsPage() {
                     </div>
 
                     <div className="awis-muted" style={{ fontSize: 12, marginTop: 10 }}>
-                      Payload gerado: <span className="awis-mono">escopos</span> ={' '}
+                      Escopos selecionados: <span className="awis-mono">escopos</span> ={' '}
                       <span className="awis-mono">{(editor.scopes ?? []).join(' ') || '—'}</span>
                     </div>
                     </div>
                   </details>
-                ) : null}
 
                 <div className="awis-row" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
                   <label className="awis-row" style={{ gap: 10, userSelect: 'none' }}>

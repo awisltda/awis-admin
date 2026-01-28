@@ -16,6 +16,15 @@ export const endpoints = {
 
   empresaUnidades: () => `/api/v1/api-clients/empresa/unidades`,
 
+  
+  apiClientDetail: (id: number) => `/api/v1/api-clients/${id}/detail`,
+
+
+
+  // NOVO: vincular matriz por empresaId (sem pesquisa)
+  apiClientVincularMatriz: (apiClientId: number, empresaId: number) =>
+    `/api/v1/api-clients/${apiClientId}/unidades/matriz/${empresaId}`,
+
   // Admin (App) — Users & Roles
   adminUsers: (params?: {
     q?: string

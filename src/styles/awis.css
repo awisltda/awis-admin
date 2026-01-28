@@ -508,6 +508,18 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .awis-input-wrap { position: relative; display: flex; align-items: center; min-width: 0; }
 
+/* right slot (ex: mostrar/ocultar senha) */
+.awis-input-with-right{ padding-right: 86px; }
+.awis-input-right-in{
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .awis-input,
 input[type='text'],
 input[type='search'],
@@ -588,6 +600,9 @@ input:focus {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+
+/* util: grid base */
+.awis-grid{ display: grid; gap: 16px; }
 
 @media (max-width: 980px){
   .awis-grid-2{ grid-template-columns: 1fr; }
