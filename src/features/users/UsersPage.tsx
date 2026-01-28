@@ -37,7 +37,7 @@ export function UsersPage() {
   const [total, setTotal] = useState<number | null>(null)
 
   const [q, setQ] = useState('')
-  // ✅ default da tela: ATIVO
+  // default da tela: ATIVO
   const [status, setStatus] = useState<UsuarioStatus | ''>('ATIVO')
   const [role, setRole] = useState<UsuarioAppRoleName | ''>('')
   const [empresaFilter, setEmpresaFilter] = useState<string>(() => (isAwis ? '' : String(empresaId || '')))
@@ -46,7 +46,7 @@ export function UsersPage() {
 
   function clearFilters() {
     setQ('')
-    // ✅ ao limpar, volta para o padrão da tela
+    // ao limpar, volta para o padrão da tela
     setStatus('ATIVO')
     setRole('')
     setEmpresaFilter(isAwis ? '' : String(empresaId || ''))
