@@ -37,7 +37,8 @@ export function UsersPage() {
   const [total, setTotal] = useState<number | null>(null)
 
   const [q, setQ] = useState('')
-  const [status, setStatus] = useState<UsuarioStatus | ''>('')
+  // ✅ default da tela: ATIVO
+  const [status, setStatus] = useState<UsuarioStatus | ''>('ATIVO')
   const [role, setRole] = useState<UsuarioAppRoleName | ''>('')
   const [empresaFilter, setEmpresaFilter] = useState<string>(() => (isAwis ? '' : String(empresaId || '')))
 
@@ -45,7 +46,8 @@ export function UsersPage() {
 
   function clearFilters() {
     setQ('')
-    setStatus('')
+    // ✅ ao limpar, volta para o padrão da tela
+    setStatus('ATIVO')
     setRole('')
     setEmpresaFilter(isAwis ? '' : String(empresaId || ''))
     load({ page: 0 })
@@ -88,7 +90,7 @@ export function UsersPage() {
   }
 
   useEffect(() => {
-    // primeira carga
+    // primeira carga (já com status ATIVO)
     load({ page: 0 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -161,7 +163,7 @@ export function UsersPage() {
           </div>
 
           <div style={{ width: 180 }}>
-            <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <Select label="Status" value={status} onChange={(e) => setStatus(e.target.value as any)}>
               <option value="">Todos</option>
               <option value="ATIVO">ATIVO</option>
               <option value="INATIVO">INATIVO</option>
@@ -210,11 +212,7 @@ export function UsersPage() {
             </Select>
           </div>
 
-          <Button
-            variant="primary"
-            onClick={() => load({ page: 0 })}
-            disabled={loading}
-          >
+          <Button variant="primary" onClick={() => load({ page: 0 })} disabled={loading}>
             {loading ? 'Buscando...' : 'Buscar'}
           </Button>
 
@@ -256,9 +254,7 @@ export function UsersPage() {
         {showEmpty ? (
           <div className="awis-state">
             <div className="awis-state-title">Nenhum resultado</div>
-            <div className="awis-state-sub">
-              Ajuste os filtros ou tente buscar por outro termo.
-            </div>
+            <div className="awis-state-sub">Ajuste os filtros ou tente buscar por outro termo.</div>
           </div>
         ) : null}
 
@@ -295,7 +291,6 @@ export function UsersPage() {
               role="table"
               aria-label="Lista de usuários"
               style={{
-                // Grid responsivo e consistente com cabeçalho/linhas
                 ...(isAwis
                   ? ({ ['--cols' as any]: '90px 110px 1fr 120px 220px 140px' } as any)
                   : ({ ['--cols' as any]: '90px 1fr 120px 220px 140px' } as any)),
@@ -307,7 +302,9 @@ export function UsersPage() {
                 <div role="columnheader">Usuário</div>
                 <div role="columnheader">Status</div>
                 <div role="columnheader">Roles</div>
-                <div role="columnheader" style={{ textAlign: 'right' }}>Ações</div>
+                <div role="columnheader" style={{ textAlign: 'right' }}>
+                  Ações
+                </div>
               </div>
 
               {items.map((u) => {
@@ -331,7 +328,8 @@ export function UsersPage() {
                         <span className="awis-mono">{u.email}</span>
                         {u.cpf ? (
                           <>
-                            {' '}• CPF: <span className="awis-mono">{u.cpf}</span>
+                            {' '}
+                            • CPF: <span className="awis-mono">{u.cpf}</span>
                           </>
                         ) : null}
                       </div>
@@ -356,11 +354,7 @@ export function UsersPage() {
 
                     <div data-label="Roles" role="cell">
                       <div className="awis-row awis-row--wrap" style={{ gap: 6 }}>
-                        {rolesNow.length ? (
-                          rolesNow.map((r) => <Badge key={r}>{r}</Badge>)
-                        ) : (
-                          <span className="awis-muted">—</span>
-                        )}
+                        {rolesNow.length ? rolesNow.map((r) => <Badge key={r}>{r}</Badge>) : <span className="awis-muted">—</span>}
                       </div>
                     </div>
 
@@ -383,11 +377,7 @@ export function UsersPage() {
           <div className="awis-modal">
             <Card
               title="Gerenciar roles"
-              subtitle={
-                rolesModal.user
-                  ? `${rolesModal.user.nome} • ${rolesModal.user.email}`
-                  : 'Usuário'
-              }
+              subtitle={rolesModal.user ? `${rolesModal.user.nome} • ${rolesModal.user.email}` : 'Usuário'}
             >
               {rolesModal.loading ? (
                 <div className="awis-state">
@@ -401,7 +391,8 @@ export function UsersPage() {
               ) : (
                 <>
                   <div className="awis-muted" style={{ fontSize: 12, marginBottom: 10 }}>
-                    Governança: somente <span className="awis-mono">AWIS</span> concede/remove <span className="awis-mono">AWIS</span> e <span className="awis-mono">ADM</span>.
+                    Governança: somente <span className="awis-mono">AWIS</span> concede/remove <span className="awis-mono">AWIS</span> e{' '}
+                    <span className="awis-mono">ADM</span>.
                   </div>
 
                   <div className="awis-stack" style={{ gap: 10 }}>
@@ -409,18 +400,14 @@ export function UsersPage() {
                       const enabled = Boolean(rolesModal.roles?.includes(r))
                       const disabledByGov = !isAwis && (r === 'AWIS' || r === 'ADM')
                       return (
-                        <div
-                          key={r}
-                          className="awis-row awis-row--wrap"
-                          style={{ justifyContent: 'space-between', gap: 10 }}
-                        >
+                        <div key={r} className="awis-row awis-row--wrap" style={{ justifyContent: 'space-between', gap: 10 }}>
                           <div>
                             <div style={{ fontWeight: 700 }}>{r}</div>
                             <div className="awis-muted" style={{ fontSize: 12 }}>
                               {r === 'AWIS'
                                 ? 'Acesso global ao Console e governança.'
                                 : r === 'ADM'
-                                  ? 'Admin do tenant (gestão do App no tenant).' 
+                                  ? 'Admin do tenant (gestão do App no tenant).'
                                   : r === 'PARCEIRO'
                                     ? 'Perfil parceiro (publicações e recursos do parceiro).'
                                     : 'Perfil base (padrão do App).'}

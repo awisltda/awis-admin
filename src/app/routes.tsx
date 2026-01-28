@@ -16,7 +16,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: (
-      <RequireAnyRole roles={["AWIS", "ADM"]}>
+      <RequireAnyRole roles={["AWIS"]}>
         <Shell />
       </RequireAnyRole>
     ),
