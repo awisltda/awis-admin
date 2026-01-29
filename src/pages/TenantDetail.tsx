@@ -16,7 +16,7 @@ type ApiClientDetail = {
   nome: string
   clientId: string
   ativo: boolean
-  empresaId: number // ✅ matriz (X-Progem-ID)
+  empresaId: number //  matriz (X-Progem-ID)
   escopos?: string
 }
 
@@ -63,11 +63,11 @@ export function TenantDetail() {
   const [confirmToggle, setConfirmToggle] = useState<{ open: boolean }>({ open: false })
   const [confirmUnlink, setConfirmUnlink] = useState<{ open: boolean; unidadeId?: number }>({ open: false })
 
-  // ✅ Campo operacional: outras unidades (sem pesquisa)
+  // Campo operacional: outras unidades (sem pesquisa)
   const [outraUnidadeId, setOutraUnidadeId] = useState<string>('')
   const [linking, setLinking] = useState(false)
 
-  // ✅ Somente UI (a API não retorna secret). Campo opcional para o operador colar e copiar.
+  // Somente UI (a API não retorna secret). Campo opcional para o operador colar e copiar.
   const [secretLocal, setSecretLocal] = useState<string>('')
   const [revealSecret, setRevealSecret] = useState(false)
 
@@ -617,8 +617,6 @@ X_PROGEM_ID="${empresaId || '274'}"
                     Identidade Visual com cores, imagens, ações e conteúdos.
                   </div>
                 </div>
-
-                
 
                 <div className="awis-divider" />
                 <div className="awis-muted">

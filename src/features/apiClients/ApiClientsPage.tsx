@@ -33,6 +33,8 @@ export function ApiClientsPage() {
         'read:duplicatas',
         'read:planos',
         'read:parceiros',
+        'read:notas',
+        'write:notas',
       ] as const,
     []
   )
