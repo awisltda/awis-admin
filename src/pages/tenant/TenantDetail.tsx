@@ -20,6 +20,7 @@ import type {
   WebhookCreatePayload,
   WebhookUpdatePayload,
 } from './types'
+
 import {
   chunkScopes,
   extractApiMessage,
@@ -59,7 +60,7 @@ export function TenantDetail() {
   const [loadingWebhooks, setLoadingWebhooks] = useState(false)
   const [confirmDeleteWebhook, setConfirmDeleteWebhook] = useState<{ open: boolean; id?: number }>({ open: false })
 
-  // ✅ Rotação de secret
+  //  Rotação de secret
   const [confirmRotateSecret, setConfirmRotateSecret] = useState<{ open: boolean }>({ open: false })
   const [rotatingSecret, setRotatingSecret] = useState(false)
   const [rotateResult, setRotateResult] = useState<ApiClientRotateSecretResponse | null>(null)
@@ -98,7 +99,8 @@ export function TenantDetail() {
     setLoadingWebhooks(true)
     try {
       const url = endpoints.webhooksEndpoints(empresaId)
-      const list = await http.get<WebhookEndpointDTO[]>(url, withEmpresaHeader(empresaId))
+      // wrapper tipado com 1–2 args; aqui precisamos passar headers
+      const list = await (http as any).get(url, withEmpresaHeader(empresaId))
       setWebhooks(Array.isArray(list) ? list : [])
     } catch (e: any) {
       setToast({ kind: 'error', message: extractApiMessage(e, 'Falha ao carregar webhooks.') })
@@ -212,11 +214,13 @@ export function TenantDetail() {
     )
   }
 
-  async function doCopy(label: string, value: string) {
-    const ok = await copyToClipboard(value)
-    setToast({
-      kind: ok ? 'success' : 'error',
-      message: ok ? `${label} copiado.` : `Não foi possível copiar ${label}.`,
+  // onCopy deve poder ser usado onde esperam void (sem async/Promise explícito)
+  function doCopy(label: string, value: string) {
+    copyToClipboard(value).then((ok) => {
+      setToast({
+        kind: ok ? 'success' : 'error',
+        message: ok ? `${label} copiado.` : `Não foi possível copiar ${label}.`,
+      })
     })
   }
 
@@ -276,7 +280,7 @@ Eventos obrigatórios:
       const base = endpoints.webhooksEndpoints()
       const body: WebhookCreatePayload = { ...payload, empresaId: tenant.empresaId }
 
-      await http.post(base, body as any, withEmpresaHeader(tenant.empresaId))
+      await (http as any).post(base, body as any, withEmpresaHeader(tenant.empresaId))
       setToast({ kind: 'success', message: 'Webhook criado com sucesso.' })
       await loadWebhooks(tenant.empresaId)
     } catch (e: any) {
@@ -291,7 +295,7 @@ Eventos obrigatórios:
       const putUrl = endpoints.webhooksEndpointById(id, tenant.empresaId)
       const body: WebhookUpdatePayload = { ...payload, empresaId: tenant.empresaId }
 
-      await http.put(putUrl, body as any, withEmpresaHeader(tenant.empresaId))
+      await (http as any).put(putUrl, body as any, withEmpresaHeader(tenant.empresaId))
       setToast({ kind: 'success', message: 'Webhook atualizado com sucesso.' })
       await loadWebhooks(tenant.empresaId)
     } catch (e: any) {
@@ -340,7 +344,7 @@ Eventos obrigatórios:
                       : 'Endpoint do Progem',
         }
 
-        await http.post(base, payload as any, withEmpresaHeader(tenant.empresaId))
+        await (http as any).post(base, payload as any, withEmpresaHeader(tenant.empresaId))
       }
 
       setToast({ kind: 'success', message: `Webhooks padrão provisionados: ${missing.length} evento(s) criados.` })
@@ -360,7 +364,7 @@ Eventos obrigatórios:
     setConfirmDeleteWebhook({ open: false })
     try {
       const delUrl = endpoints.webhooksEndpointById(id, tenant.empresaId)
-      await http.del(delUrl, withEmpresaHeader(tenant.empresaId))
+      await (http as any).del(delUrl, withEmpresaHeader(tenant.empresaId))
       setToast({ kind: 'success', message: 'Webhook removido com sucesso.' })
       await loadWebhooks(tenant.empresaId)
     } catch (e: any) {
@@ -368,27 +372,27 @@ Eventos obrigatórios:
     }
   }
 
-  // ✅ Rotacionar clientSecret (flow premium)
+  //  Rotacionar clientSecret (flow premium)
   function openRotate() {
     if (!tenant) return
     setConfirmRotateSecret({ open: true })
   }
 
-async function rotateSecretNow() {
-  if (!tenant) return
-  setConfirmRotateSecret({ open: false })
-  setRotatingSecret(true)
-  try {
-    // seu wrapper SEMPRE manda body JSON; aqui enviamos {} explícito
-    const res = await http.post<ApiClientRotateSecretResponse>(endpoints.apiClientRotateSecret(tenant.id), {})
-    setRotateResult(res)
-    setToast({ kind: 'success', message: 'clientSecret rotacionado. Copie o valor (exibição única).' })
-  } catch (e: any) {
-    setToast({ kind: 'error', message: extractApiMessage(e, 'Falha ao rotacionar clientSecret.') })
-  } finally {
-    setRotatingSecret(false)
+  async function rotateSecretNow() {
+    if (!tenant) return
+    setConfirmRotateSecret({ open: false })
+    setRotatingSecret(true)
+    try {
+      // seu wrapper SEMPRE manda body JSON; aqui enviamos {} explícito
+      const res = await http.post<ApiClientRotateSecretResponse>(endpoints.apiClientRotateSecret(tenant.id), {})
+      setRotateResult(res)
+      setToast({ kind: 'success', message: 'clientSecret rotacionado. Copie o valor (exibição única).' })
+    } catch (e: any) {
+      setToast({ kind: 'error', message: extractApiMessage(e, 'Falha ao rotacionar clientSecret.') })
+    } finally {
+      setRotatingSecret(false)
+    }
   }
-}
 
   if (!apiClientId) {
     return (
@@ -458,9 +462,6 @@ async function rotateSecretNow() {
                 <Badge variant="muted">domínio: —</Badge>
               )}
 
-
-
-
               {tenantDomain ? (
                 <Button variant="ghost" onClick={() => doCopy('domínio', tenantDomain)} title="Copiar domínio">
                   Copiar domínio
@@ -510,7 +511,7 @@ async function rotateSecretNow() {
                 defaultWebhookUrl={defaultWebhookUrl}
                 webhooks={webhooks}
                 loadingWebhooks={loadingWebhooks}
-                missingDefaultEvents={missingDefaultEvents}
+                missingDefaultEvents={missingDefaultEvents as any}
                 onReload={() => loadWebhooks(tenant.empresaId)}
                 onProvisionDefault={provisionDefaultWebhooks}
                 onCreate={createWebhook}
@@ -536,7 +537,7 @@ async function rotateSecretNow() {
         ) : null}
       </Card>
 
-      {/* ✅ Confirm: Ativar/Desativar */}
+      {/*  Confirm: Ativar/Desativar */}
       <ConfirmDialog
         open={confirmToggle.open}
         title={`${tenant?.ativo ? 'Desativar' : 'Ativar'} API Client`}
@@ -551,7 +552,7 @@ async function rotateSecretNow() {
         onClose={() => setConfirmToggle({ open: false })}
       />
 
-      {/* ✅ Confirm: Desvincular unidade */}
+      {/* Confirm: Desvincular unidade */}
       <ConfirmDialog
         open={confirmUnlink.open}
         title="Desvincular unidade"
@@ -562,7 +563,7 @@ async function rotateSecretNow() {
         onClose={() => setConfirmUnlink({ open: false })}
       />
 
-      {/* ✅ Confirm: Remover webhook */}
+      {/*  Confirm: Remover webhook */}
       <ConfirmDialog
         open={confirmDeleteWebhook.open}
         title="Remover webhook"
@@ -573,7 +574,7 @@ async function rotateSecretNow() {
         onClose={() => setConfirmDeleteWebhook({ open: false })}
       />
 
-      {/* ✅ Confirm: Rotacionar secret */}
+      {/*  Confirm: Rotacionar secret */}
       <ConfirmDialog
         open={confirmRotateSecret.open}
         title="Rotacionar clientSecret"
@@ -584,7 +585,7 @@ async function rotateSecretNow() {
         onClose={() => setConfirmRotateSecret({ open: false })}
       />
 
-      {/* ✅ Modal: Exibição única */}
+      {/*  Modal: Exibição única */}
       <SecretOneTimeModal
         open={Boolean(rotateResult)}
         clientId={rotateResult?.clientId ?? tenant?.clientId ?? ''}

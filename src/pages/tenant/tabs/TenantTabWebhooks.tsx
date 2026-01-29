@@ -37,20 +37,22 @@ function firstOrNull<T>(arr: T[]) {
 export function TenantTabWebhooks(props: {
   empresaId: number
   tenantDomain: string
+  webhookGuide?: string
   defaultWebhookUrl: string
   webhooks: WebhookEndpointDTO[]
   loadingWebhooks: boolean
   missingDefaultEvents: readonly string[]
   onReload: () => void
-  onProvisionDefault: () => void
+  onProvisionDefault: () => void | Promise<void>
   onCreate: (payload: { url: string; eventos: string[]; descricao?: string; secret?: string }) => Promise<void>
   onUpdate: (id: number, payload: { url: string; eventos: string[]; descricao?: string; ativo?: boolean }) => Promise<void>
   onDelete: (id: number) => void
-  onCopy: (label: string, value: string) => void
+  onCopy: (label: string, value: string) => void | Promise<void>
 }) {
   const {
     empresaId,
     tenantDomain,
+    webhookGuide,
     defaultWebhookUrl,
     webhooks,
     loadingWebhooks,
@@ -205,6 +207,12 @@ export function TenantTabWebhooks(props: {
     })
   }
 
+  function copyGuide() {
+    const text = String(webhookGuide ?? '').trim()
+    if (!text) return
+    onCopy('Guia de webhooks', text)
+  }
+
   return (
     <div className="awis-stack" style={{ gap: 14 }}>
       <div
@@ -220,6 +228,12 @@ export function TenantTabWebhooks(props: {
         </div>
 
         <div className="awis-row awis-row--wrap" style={{ gap: 10 }}>
+          {webhookGuide ? (
+            <Button variant="ghost" onClick={copyGuide} disabled={!webhookGuide}>
+              Copiar guia
+            </Button>
+          ) : null}
+
           <Button variant="ghost" onClick={onReload} disabled={loadingWebhooks}>
             {loadingWebhooks ? 'Atualizando…' : 'Recarregar'}
           </Button>
@@ -245,8 +259,6 @@ export function TenantTabWebhooks(props: {
       </div>
 
       <div className="awis-row awis-row--wrap" style={{ gap: 10 }}>
-
-
         <Badge variant="muted">
           URL padrão: <span className="awis-mono">{defaultUrlNormalized || '—'}</span>
         </Badge>

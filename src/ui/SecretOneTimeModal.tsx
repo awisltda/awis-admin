@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from './Button'
 import { Card } from './Card'
 import { Badge } from './Badge'
@@ -7,7 +7,7 @@ export function SecretOneTimeModal(props: {
   open: boolean
   clientId: string
   clientSecret: string
-  onCopy: (label: string, value: string) => void
+  onCopy: (label: string, value: string) => void | Promise<void>
   onClose: () => void
 }) {
   const { open, clientId, clientSecret, onCopy, onClose } = props
@@ -28,7 +28,7 @@ export function SecretOneTimeModal(props: {
           title="clientSecret (exibição única)"
           subtitle="Este valor será exibido somente agora. Copie e atualize o integrador imediatamente."
           right={
-            <Badge variant="muted" title="Exibição única">
+            <Badge variant="muted">
               EXIBIÇÃO ÚNICA
             </Badge>
           }
