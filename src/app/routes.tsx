@@ -5,7 +5,7 @@ import { Shell } from '../layout/Shell'
 import { ApiClientsPage } from '../features/apiClients/ApiClientsPage'
 import { UsersPage } from '../features/users/UsersPage'
 import { Login } from '../pages/Login'
-import { TenantDetail } from '../pages/TenantDetail'
+import { TenantDetail } from '../pages/tenant/TenantDetail'
 
 function NotFound() {
   return <div style={{ padding: 18 }}>Página não encontrada.</div>

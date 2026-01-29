@@ -1,3 +1,4 @@
+// src/api/endpoints.ts
 export const endpoints = {
   authLogin: () => `/api/v1/app/auth/login`,
   authRefresh: () => `/api/v1/app/auth/refresh`,
@@ -16,12 +17,23 @@ export const endpoints = {
 
   empresaUnidades: () => `/api/v1/api-clients/empresa/unidades`,
 
-  
   apiClientDetail: (id: number) => `/api/v1/api-clients/${id}/detail`,
 
+  // ✅ NOVO: rotacionar clientSecret (exibição única)
+  apiClientRotateSecret: (id: number) => `/api/v1/api-clients/${id}/secret:rotate`,
 
+  // Webhooks
+  webhooksEndpoints: (empresaId?: number) =>
+    empresaId
+      ? `/api/v1/webhooks/endpoints?empresaId=${encodeURIComponent(String(empresaId))}`
+      : `/api/v1/webhooks/endpoints`,
 
-  // NOVO: vincular matriz por empresaId (sem pesquisa)
+  webhooksEndpointById: (id: number, empresaId?: number) =>
+    empresaId
+      ? `/api/v1/webhooks/endpoints/${id}?empresaId=${encodeURIComponent(String(empresaId))}`
+      : `/api/v1/webhooks/endpoints/${id}`,
+
+  // vincular matriz por empresaId (sem pesquisa)
   apiClientVincularMatriz: (apiClientId: number, empresaId: number) =>
     `/api/v1/api-clients/${apiClientId}/unidades/matriz/${empresaId}`,
 
@@ -59,5 +71,6 @@ export const endpoints = {
 
   adminUserRoles: (userId: number | string) => `/api/v1/app/admin/users/${userId}/roles`,
   adminUserAddRole: (userId: number | string, role: string) => `/api/v1/app/admin/users/${userId}/roles/${role}`,
-  adminUserRemoveRole: (userId: number | string, role: string) => `/api/v1/app/admin/users/${userId}/roles/${role}`,
+  adminUserRemoveRole: (userId: number | string, role: string) =>
+    `/api/v1/app/admin/users/${userId}/roles/${role}`,
 }

@@ -3,6 +3,7 @@ export type ApiClientResponse = {
   nome?: string
   ativo: boolean
   empresaId?: number 
+  dominio?: string | null
   // tolera campos adicionais vindos do backend sem quebrar
   [k: string]: any
 }
