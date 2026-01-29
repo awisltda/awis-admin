@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+// src/pages/tenant/tabs/TenantTabUnidades.tsx
 import { Badge } from '../../../ui/Badge'
 import { Button } from '../../../ui/Button'
 import { Input } from '../../../ui/Input'
@@ -32,8 +32,8 @@ export function TenantTabUnidades(props: {
           <div style={{ fontWeight: 700 }}>Atenção</div>
           <div className="awis-muted" style={{ marginTop: 4 }}>
             A unidade matriz (<span className="awis-mono">{tenant.empresaId}</span>) não aparece vinculada em{' '}
-            <span className="awis-mono">api_client_unidades</span>. Isso indica inconsistência em base antiga.
-            Garanta o vínculo automático no backend (create/update) ou execute um reparo.
+            <span className="awis-mono">api_client_unidades</span>. Isso indica inconsistência em base antiga. Garanta o
+            vínculo automático no backend (create/update) ou execute um reparo.
           </div>
         </div>
       ) : null}
@@ -127,8 +127,6 @@ export function TenantTabUnidades(props: {
           )}
         </div>
       </div>
-
-      
     </div>
   )
 }

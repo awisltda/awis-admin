@@ -1,3 +1,4 @@
+// src/pages/tenant/tabs/TenantTabCredenciais.tsx
 import { Badge } from '../../../ui/Badge'
 import { Button } from '../../../ui/Button'
 import type { ApiClientDetail } from '../types'
@@ -53,7 +54,17 @@ export function TenantTabCredenciais(props: {
               </Button>
             </div>
 
-            
+            <div className="awis-list-item" role="listitem">
+              <div style={{ minWidth: 0 }}>
+                <div className="awis-list-title">Domínio do tenant</div>
+                <div className="awis-muted" style={{ fontSize: 12 }}>
+                  <span className="awis-mono">{tenantDomain || '—'}</span>
+                </div>
+              </div>
+              <Button variant="ghost" onClick={() => onCopy('domínio', tenantDomain)} disabled={!tenantDomain}>
+                Copiar
+              </Button>
+            </div>
           </div>
         </div>
 
