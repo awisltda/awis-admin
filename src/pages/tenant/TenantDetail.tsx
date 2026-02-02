@@ -60,7 +60,7 @@ export function TenantDetail() {
   const [loadingWebhooks, setLoadingWebhooks] = useState(false)
   const [confirmDeleteWebhook, setConfirmDeleteWebhook] = useState<{ open: boolean; id?: number }>({ open: false })
 
-  //  Rotação de secret
+  // Rotação de secret
   const [confirmRotateSecret, setConfirmRotateSecret] = useState<{ open: boolean }>({ open: false })
   const [rotatingSecret, setRotatingSecret] = useState(false)
   const [rotateResult, setRotateResult] = useState<ApiClientRotateSecretResponse | null>(null)
@@ -231,21 +231,6 @@ export function TenantDetail() {
     return normalizeUrl(`${tenantDomain}/api/webhooks/progem`)
   }, [tenantDomain])
 
-  const envSnippet = useMemo(() => {
-    const baseUrl = String((import.meta as any)?.env?.VITE_API_BASE_URL ?? 'https://SUA-API.EXEMPLO.COM')
-    const clientId = tenant?.clientId ?? 'SEU_CLIENT_ID'
-    const empresaId = tenant?.empresaId ?? 0
-
-    return `# Exemplo de variáveis de ambiente / configuração do integrador
-API_BASE_URL="${baseUrl}"
-
-CLIENT_ID="${clientId}"
-CLIENT_SECRET="COLE_AQUI_O_CLIENT_SECRET"
-
-X_PROGEM_ID="${empresaId || '274'}"
-# AUTHORIZATION="Bearer SEU_TOKEN_AQUI"`
-  }, [tenant?.clientId, tenant?.empresaId])
-
   const webhookGuide = useMemo(() => {
     return `Webhooks (operacional)
 - Cada endpoint recebe eventos do Progem e deve validar assinatura usando o "secret".
@@ -372,7 +357,7 @@ Eventos obrigatórios:
     }
   }
 
-  //  Rotacionar clientSecret (flow premium)
+  // Rotacionar clientSecret (flow premium)
   function openRotate() {
     if (!tenant) return
     setConfirmRotateSecret({ open: true })
@@ -473,8 +458,8 @@ Eventos obrigatórios:
               <TabButton k="UNIDADES" label="Unidades" />
               <TabButton k="CREDENCIAIS" label="Credenciais" />
               <TabButton k="WEBHOOKS" label="Webhooks" />
-              <TabButton k="ENV" label=".env" />
-              <TabButton k="IDENTIDADE" label="Identidade" />
+              <TabButton k="ENV" label="Variáveis de Ambiente" />
+              <TabButton k="IDENTIDADE" label="Visual" />
             </div>
 
             <div className="awis-divider" />
@@ -521,7 +506,9 @@ Eventos obrigatórios:
               />
             ) : null}
 
-            {tab === 'ENV' ? <TenantTabEnv envSnippet={envSnippet} /> : null}
+            {/* ✅ AQUI ESTÁ O AJUSTE PRINCIPAL:
+                Passamos o apiClientId real (tenant.id) para a aba ENV gerar o .env via /detail e /secret:rotate */}
+            {tab === 'ENV' ? <TenantTabEnv apiClientId={tenant.id} /> : null}
 
             {tab === 'IDENTIDADE' ? <TenantTabIdentidade /> : null}
 
@@ -537,7 +524,7 @@ Eventos obrigatórios:
         ) : null}
       </Card>
 
-      {/*  Confirm: Ativar/Desativar */}
+      {/* Confirm: Ativar/Desativar */}
       <ConfirmDialog
         open={confirmToggle.open}
         title={`${tenant?.ativo ? 'Desativar' : 'Ativar'} API Client`}
@@ -563,7 +550,7 @@ Eventos obrigatórios:
         onClose={() => setConfirmUnlink({ open: false })}
       />
 
-      {/*  Confirm: Remover webhook */}
+      {/* Confirm: Remover webhook */}
       <ConfirmDialog
         open={confirmDeleteWebhook.open}
         title="Remover webhook"
@@ -574,7 +561,7 @@ Eventos obrigatórios:
         onClose={() => setConfirmDeleteWebhook({ open: false })}
       />
 
-      {/*  Confirm: Rotacionar secret */}
+      {/* Confirm: Rotacionar secret */}
       <ConfirmDialog
         open={confirmRotateSecret.open}
         title="Rotacionar clientSecret"
@@ -585,7 +572,7 @@ Eventos obrigatórios:
         onClose={() => setConfirmRotateSecret({ open: false })}
       />
 
-      {/*  Modal: Exibição única */}
+      {/* Modal: Exibição única */}
       <SecretOneTimeModal
         open={Boolean(rotateResult)}
         clientId={rotateResult?.clientId ?? tenant?.clientId ?? ''}

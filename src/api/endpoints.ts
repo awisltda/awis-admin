@@ -1,4 +1,3 @@
-// src/api/endpoints.ts
 export const endpoints = {
   authLogin: () => `/api/v1/app/auth/login`,
   authRefresh: () => `/api/v1/app/auth/refresh`,
