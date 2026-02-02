@@ -219,7 +219,10 @@ export function TenantTabWebhooks(props: {
         className="awis-row awis-row--wrap"
         style={{ gap: 10, justifyContent: 'space-between', alignItems: 'center' }}
       >
-        <div style={{ minWidth: 260 }}>
+        <div
+  className="awis-responsive-row"
+  style={{ justifyContent: 'space-between' }}
+>
           <div className="awis-section-title">Webhooks padrão</div>
           <div className="awis-muted" style={{ marginTop: 4 }}>
             Objetivo: garantir os 5 eventos obrigatórios por tenant, com URL baseada no domínio e tudo{' '}
@@ -329,7 +332,7 @@ export function TenantTabWebhooks(props: {
                 ) : null}
               </div>
 
-              <div className="awis-row" style={{ gap: 10 }}>
+           <div className="awis-responsive-actions">
                 {w?.url ? (
                   <Button variant="ghost" onClick={() => onCopy('URL do webhook', w.url)}>
                     Copiar URL

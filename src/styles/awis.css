@@ -70,6 +70,39 @@
   --t-med: 220ms;
 }
 
+
+
+/* Stack responsivo */
+.awis-responsive-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .awis-responsive-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Botões nunca quebram layout */
+.awis-responsive-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .awis-responsive-actions > button {
+    width: 100%;
+  }
+}
+
+
+
+
+
 /* -----------------------------
    2) TOKENS (Dark)
 -------------------------------- */
@@ -1247,4 +1280,35 @@ input:focus {
   height: 16px;
   border-radius: 6px;
   accent-color: var(--primary);
+}
+
+
+.awis-mono {
+  word-break: break-all;
+}
+
+@media (max-width: 768px) {
+  .awis-badge {
+    max-width: 100%;
+  }
+}
+
+
+.awis-modal {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .awis-modal {
+    max-width: 100%;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .awis-modal-scroll {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
 }
