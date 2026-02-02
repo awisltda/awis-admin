@@ -281,7 +281,7 @@ export function TenantTabEnv({ apiClientId }: Props) {
         description="Isso invalida o secret atual. Após rotacionar, atualize as variáveis na Vercel do whitelabel imediatamente."
         confirmText={rotating ? 'Rotacionando…' : 'Rotacionar'}
         cancelText="Cancelar"
-        onCancel={() => setConfirmRotate(false)}
+        onClose={() => setConfirmRotate(false)}
         onConfirm={doRotateSecret}
       />
 
