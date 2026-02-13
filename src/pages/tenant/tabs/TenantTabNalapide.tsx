@@ -12,8 +12,11 @@ type Props = {
   saving: boolean
   onSave: (req: ApiClientNalapideUpdateRequest) => void
 
-  // ✅ opcional: o pai pode injetar rotação de secret (exibição única)
-  onRotateSecret?: () => Promise<any>
+  /**
+   * Rotação do secret da NaLápide via endpoint dedicado (Progem -> NaLápide).
+   * Deve retornar o novo secret (exibição única).
+   */
+  onRotateSecret?: () => Promise<{ clientId?: string; clientSecret?: string } | void>
 }
 
 type TenantExt = ApiClientDetail & {
@@ -33,6 +36,12 @@ type NalapideTokenUi = {
   scope?: string | null
   expiresIn?: number | null
   obtainedAtIso?: string
+}
+
+type NalapideRotateUi = {
+  clientId: string
+  clientSecret: string // 1x
+  obtainedAtIso: string
 }
 
 function safe(v?: string | null) {
@@ -76,8 +85,14 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
   const [tokenErr, setTokenErr] = useState<string>('')
   const [token, setToken] = useState<NalapideTokenUi | null>(null)
 
+  // Rotação (NaLápide)
+  const [rotatingNalapide, setRotatingNalapide] = useState(false)
+  const [rotateErr, setRotateErr] = useState<string>('')
+  const [rotate, setRotate] = useState<NalapideRotateUi | null>(null)
+
   const provisionSecretRef = useRef<HTMLInputElement | null>(null)
   const tokenInputRef = useRef<HTMLInputElement | null>(null)
+  const rotateSecretRef = useRef<HTMLInputElement | null>(null)
 
   // Gatilho: depois que o backend terminar o save (saving vira false), provisiona automaticamente
   const pendingProvisionAfterSaveRef = useRef(false)
@@ -86,7 +101,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
   const hasSecretHash = Boolean(tenant.nalapideHasSecret)
 
   const step1Valid = enabled ? Boolean(safe(nalapideId) && safe(baseUrl)) : true
-  const canEdit = enabled && !saving && !provisioning && !tokenLoading
+  const canEdit = enabled && !saving && !provisioning && !tokenLoading && !rotatingNalapide
 
   const dirtyConfig = useMemo(() => {
     const dEnabled = enabled !== originalEnabled
@@ -100,6 +115,8 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
     setProvisionErr('')
     setToken(null)
     setTokenErr('')
+    setRotate(null)
+    setRotateErr('')
   }
 
   function onToggle(next: boolean) {
@@ -111,7 +128,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
   async function runProvisionNow() {
     if (!enabled) return
     if (!safe(nalapideId) || !safe(baseUrl)) return
-    if (saving || provisioning || tokenLoading) return
+    if (saving || provisioning || tokenLoading || rotatingNalapide) return
 
     setProvisionErr('')
     setProvision(null)
@@ -230,7 +247,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
 
   async function fetchAccessToken() {
     if (!enabled) return
-    if (saving || provisioning || tokenLoading) return
+    if (saving || provisioning || tokenLoading || rotatingNalapide) return
 
     setTokenErr('')
     setToken(null)
@@ -290,10 +307,60 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
     }
   }
 
+  async function rotateNalapideNow() {
+    if (!enabled) return
+    if (saving || provisioning || tokenLoading || rotatingNalapide) return
+
+    setRotateErr('')
+    setRotate(null)
+
+    if (!onRotateSecret) {
+      setRotateErr('Rotação não disponível: o módulo não forneceu onRotateSecret.')
+      return
+    }
+
+    setRotatingNalapide(true)
+    try {
+      const res = await onRotateSecret()
+
+      const clientId = safe((res as any)?.clientId || (res as any)?.client_id)
+      const clientSecret = safe((res as any)?.clientSecret || (res as any)?.client_secret)
+
+      if (!clientSecret) {
+        setRotateErr('Rotação ocorreu, mas não retornou clientSecret na resposta.')
+        return
+      }
+
+      const ui: NalapideRotateUi = {
+        clientId: clientId || safe(tenant.clientId) || safe(tenant.nalapideId) || '—',
+        clientSecret,
+        obtainedAtIso: new Date().toISOString(),
+      }
+
+      setRotate(ui)
+
+      setShowSecret(true)
+      setTimeout(() => {
+        try {
+          rotateSecretRef.current?.focus?.()
+          rotateSecretRef.current?.select?.()
+        } catch {
+          // noop
+        }
+      }, 50)
+    } catch (e: any) {
+      const msg = safe(e?.message) || 'Falha ao rotacionar secret da NaLápide.'
+      setRotateErr(msg)
+    } finally {
+      setRotatingNalapide(false)
+    }
+  }
+
   const canProvision =
     !saving &&
     !provisioning &&
     !tokenLoading &&
+    !rotatingNalapide &&
     (enabled ? Boolean(safe(nalapideId) && safe(baseUrl)) : true) &&
     (enabled ? dirtyConfig || true : true)
 
@@ -301,6 +368,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
     !saving &&
     !provisioning &&
     !tokenLoading &&
+    !rotatingNalapide &&
     enabled &&
     Boolean(safe(nalapideId) && safe(baseUrl)) &&
     Boolean(safe(clientSecretPlain))
@@ -309,9 +377,13 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
     !saving &&
     !provisioning &&
     !tokenLoading &&
+    !rotatingNalapide &&
     enabled &&
     Boolean(safe(nalapideId) && safe(baseUrl)) &&
     Boolean(safe(clientSecretPlain))
+
+  const canRotateSecret =
+    Boolean(onRotateSecret) && !saving && !provisioning && !tokenLoading && !rotatingNalapide && enabled
 
   return (
     <div className="awis-stack" style={{ gap: 14 }}>
@@ -326,12 +398,9 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
 
         <div className="awis-row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {enabled ? <Badge>ATIVA</Badge> : <Badge variant="muted">INATIVA</Badge>}
-          {enabled && hasSecretHash ? (
-            <Badge variant="muted">PROVISIONADO</Badge>
-          ) : enabled ? (
-            <Badge>PENDENTE</Badge>
-          ) : null}
+          {enabled && hasSecretHash ? <Badge variant="muted">PROVISIONADO</Badge> : enabled ? <Badge>PENDENTE</Badge> : null}
           {provisioning ? <Badge variant="muted">PROVISIONANDO…</Badge> : null}
+          {rotatingNalapide ? <Badge variant="muted">ROTACIONANDO…</Badge> : null}
         </div>
       </div>
 
@@ -370,7 +439,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
             setNalapideId(e.target.value)
             clearOperationalOutputs()
           }}
-          disabled={!enabled || saving || provisioning || tokenLoading}
+          disabled={!enabled || saving || provisioning || tokenLoading || rotatingNalapide}
         />
 
         <div style={{ height: 10 }} />
@@ -383,7 +452,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
             setBaseUrl(e.target.value)
             clearOperationalOutputs()
           }}
-          disabled={!enabled || saving || provisioning || tokenLoading}
+          disabled={!enabled || saving || provisioning || tokenLoading || rotatingNalapide}
         />
 
         {enabled && (!safe(nalapideId) || !safe(baseUrl)) ? (
@@ -456,6 +525,83 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
         ) : null}
       </div>
 
+      {/* 2) Rotação do secret (NaLápide) */}
+      <div className="awis-callout" style={!enabled ? { opacity: 0.6 } : undefined}>
+        <div className="awis-row" style={{ justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+          <div style={{ fontWeight: 700 }}>Rotação de secret (NaLápide)</div>
+          <Badge variant="muted">POST /api-clients/:id/nalapide/secret:rotate</Badge>
+        </div>
+
+        <div className="hint" style={{ marginTop: 8 }}>
+          Rotaciona o secret do client OAuth2 na NaLápide e retorna o novo valor para cópia (exibição única).
+        </div>
+
+        <div style={{ height: 12 }} />
+
+        <div className="awis-row" style={{ justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
+          <Button variant="ghost" onClick={rotateNalapideNow} disabled={!canRotateSecret} title="Rotacionar secret da NaLápide">
+            {rotatingNalapide ? 'Rotacionando…' : 'Rotacionar secret'}
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setRotate(null)
+              setRotateErr('')
+            }}
+            disabled={rotatingNalapide || (!rotate && !rotateErr)}
+          >
+            Limpar
+          </Button>
+        </div>
+
+        {rotateErr ? (
+          <div className="hint" style={{ marginTop: 8 }}>
+            <span style={{ fontWeight: 700 }}>Falha:</span> {rotateErr}
+          </div>
+        ) : null}
+
+        {rotate?.clientSecret ? (
+          <div className="awis-callout" style={{ marginTop: 12 }}>
+            <div className="awis-row" style={{ justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+              <div style={{ fontWeight: 800 }}>Secret rotacionado (1x)</div>
+              <Badge variant="muted">copie agora</Badge>
+            </div>
+
+            <div style={{ height: 10 }} />
+
+            <Input
+              label="clientSecret (rotacionado)"
+              value={rotate.clientSecret}
+              type="text"
+              onChange={() => {}}
+              disabled={false}
+              ref={rotateSecretRef}
+              rightSlot={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(rotate.clientSecret)
+                    } catch {
+                      try {
+                        rotateSecretRef.current?.focus?.()
+                        rotateSecretRef.current?.select?.()
+                      } catch {
+                        // noop
+                      }
+                    }
+                  }}
+                >
+                  Copiar
+                </Button>
+              }
+            />
+          </div>
+        ) : null}
+      </div>
+
       {/* 3) Definir clientSecret (e reutiliza no token) */}
       <div className="awis-callout" style={!enabled ? { opacity: 0.6 } : undefined}>
         <div className="awis-row" style={{ justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
@@ -485,7 +631,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateS
               type="button"
               variant="ghost"
               onClick={() => setShowSecret((s) => !s)}
-              disabled={saving || provisioning || tokenLoading}
+              disabled={saving || provisioning || tokenLoading || rotatingNalapide}
             >
               {showSecret ? 'Ocultar' : 'Ver'}
             </Button>
