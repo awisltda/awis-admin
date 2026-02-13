@@ -1,4 +1,3 @@
-// src/pages/tenant/types.ts
 export type ToastState = { kind: 'success' | 'error'; message: string } | null
 
 export type ApiClientDetail = {
@@ -9,6 +8,12 @@ export type ApiClientDetail = {
   empresaId: number // matriz (X-Progem-ID)
   dominio?: string | null
   escopos?: string
+
+  // NaLápide API
+  nalapideEnabled?: boolean | null
+  nalapideId?: string | null
+  nalapideBaseUrl?: string | null
+  nalapideHasSecret?: boolean | null
 }
 
 export type ApiClientUnidade = {
@@ -46,4 +51,11 @@ export type WebhookUpdatePayload = {
   ativo?: boolean
 }
 
-export type TabKey = 'UNIDADES' | 'CREDENCIAIS' | 'WEBHOOKS' | 'ENV' | 'IDENTIDADE'
+export type ApiClientNalapideUpdateRequest = {
+  enabled: boolean
+  nalapideId?: string | null
+  baseUrl?: string | null
+  clientSecret?: string | null
+}
+
+export type TabKey = 'UNIDADES' | 'CREDENCIAIS' | 'NALAPIDE' | 'WEBHOOKS' | 'ENV' | 'IDENTIDADE'
