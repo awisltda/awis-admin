@@ -11,6 +11,9 @@ type Props = {
   tenant: ApiClientDetail
   saving: boolean
   onSave: (req: ApiClientNalapideUpdateRequest) => void
+
+  // ✅ opcional: o pai pode injetar rotação de secret (exibição única)
+  onRotateSecret?: () => Promise<any>
 }
 
 type TenantExt = ApiClientDetail & {
@@ -44,7 +47,7 @@ function defaultBaseUrl(tenant: TenantExt) {
   return safe(tenant.nalapideBaseUrl) || 'https://api.nalapide.com'
 }
 
-export function TenantTabNalapide({ tenant: rawTenant, saving, onSave }: Props) {
+export function TenantTabNalapide({ tenant: rawTenant, saving, onSave, onRotateSecret }: Props) {
   const tenant = rawTenant as TenantExt
 
   const originalEnabled = Boolean(tenant.nalapideEnabled)
@@ -288,13 +291,27 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave }: Props) 
   }
 
   const canProvision =
-    !saving && !provisioning && !tokenLoading && (enabled ? Boolean(safe(nalapideId) && safe(baseUrl)) : true) && (enabled ? dirtyConfig || true : true)
+    !saving &&
+    !provisioning &&
+    !tokenLoading &&
+    (enabled ? Boolean(safe(nalapideId) && safe(baseUrl)) : true) &&
+    (enabled ? dirtyConfig || true : true)
 
   const canSaveSecret =
-    !saving && !provisioning && !tokenLoading && enabled && Boolean(safe(nalapideId) && safe(baseUrl)) && Boolean(safe(clientSecretPlain))
+    !saving &&
+    !provisioning &&
+    !tokenLoading &&
+    enabled &&
+    Boolean(safe(nalapideId) && safe(baseUrl)) &&
+    Boolean(safe(clientSecretPlain))
 
   const canGetToken =
-    !saving && !provisioning && !tokenLoading && enabled && Boolean(safe(nalapideId) && safe(baseUrl)) && Boolean(safe(clientSecretPlain))
+    !saving &&
+    !provisioning &&
+    !tokenLoading &&
+    enabled &&
+    Boolean(safe(nalapideId) && safe(baseUrl)) &&
+    Boolean(safe(clientSecretPlain))
 
   return (
     <div className="awis-stack" style={{ gap: 14 }}>
@@ -309,7 +326,11 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave }: Props) 
 
         <div className="awis-row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {enabled ? <Badge>ATIVA</Badge> : <Badge variant="muted">INATIVA</Badge>}
-          {enabled && hasSecretHash ? <Badge variant="muted">PROVISIONADO</Badge> : enabled ? <Badge>PENDENTE</Badge> : null}
+          {enabled && hasSecretHash ? (
+            <Badge variant="muted">PROVISIONADO</Badge>
+          ) : enabled ? (
+            <Badge>PENDENTE</Badge>
+          ) : null}
           {provisioning ? <Badge variant="muted">PROVISIONANDO…</Badge> : null}
         </div>
       </div>
@@ -326,7 +347,8 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave }: Props) 
             <span className="awis-mono">X-Progem-ID</span>: <span className="awis-mono">{tenant.empresaId}</span>
           </div>
           <div className="awis-muted" style={{ fontSize: 12 }}>
-            Tenant: <span className="awis-mono">{safe(tenant.clientId)}</span> • apiClientId: <span className="awis-mono">{tenant.id}</span>
+            Tenant: <span className="awis-mono">{safe(tenant.clientId)}</span> • apiClientId:{' '}
+            <span className="awis-mono">{tenant.id}</span>
           </div>
         </div>
       </div>
@@ -404,9 +426,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave }: Props) 
               type="text"
               onChange={() => {}}
               disabled={false}
-              inputRef={(el: any) => {
-                provisionSecretRef.current = el
-              }}
+              ref={provisionSecretRef}
               rightSlot={
                 <Button
                   type="button"
@@ -536,9 +556,7 @@ export function TenantTabNalapide({ tenant: rawTenant, saving, onSave }: Props) 
               type="text"
               onChange={() => {}}
               disabled={false}
-              inputRef={(el: any) => {
-                tokenInputRef.current = el
-              }}
+              ref={tokenInputRef}
               rightSlot={
                 <Button
                   type="button"
