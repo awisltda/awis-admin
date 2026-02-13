@@ -18,7 +18,17 @@ export const endpoints = {
 
   apiClientDetail: (id: number) => `/api/v1/api-clients/${id}/detail`,
 
-  // ✅ NOVO: rotacionar clientSecret (exibição única)
+  // NaLápide
+  apiClientNalapideUpdate: (id: number) => `/api/v1/api-clients/${id}/nalapide`,
+  
+  apiClientNalapideToken: (id: number) =>
+    `/api/v1/api-clients/${id}/nalapide/oauth2:token`,
+
+  // ✅ NOVO: rotacionar o secret do OAuth2 client na NaLápide (exibição única)
+  // Backend (Progem): POST /api/v1/api-clients/{id}/nalapide/secret:rotate
+  apiClientNalapideRotateSecret: (id: number) => `/api/v1/api-clients/${id}/nalapide/secret:rotate`,
+
+  // ✅ EXISTENTE: rotacionar clientSecret do próprio ApiClient (Progem)
   apiClientRotateSecret: (id: number) => `/api/v1/api-clients/${id}/secret:rotate`,
 
   // Webhooks

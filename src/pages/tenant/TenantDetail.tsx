@@ -14,6 +14,7 @@ import type {
   ApiClientDetail,
   ApiClientUnidade,
   ApiClientRotateSecretResponse,
+  ApiClientNalapideUpdateRequest,
   TabKey,
   ToastState,
   WebhookEndpointDTO,
@@ -34,6 +35,7 @@ import {
 
 import { TenantTabUnidades } from './tabs/TenantTabUnidades'
 import { TenantTabCredenciais } from './tabs/TenantTabCredenciais'
+import { TenantTabNalapide } from './tabs/TenantTabNalapide'
 import { TenantTabWebhooks } from './tabs/TenantTabWebhooks'
 import { TenantTabEnv } from './tabs/TenantTabEnv'
 import { TenantTabIdentidade } from './tabs/TenantTabIdentidade'
@@ -60,7 +62,10 @@ export function TenantDetail() {
   const [loadingWebhooks, setLoadingWebhooks] = useState(false)
   const [confirmDeleteWebhook, setConfirmDeleteWebhook] = useState<{ open: boolean; id?: number }>({ open: false })
 
-  // Rotação de secret
+  // NaLápide
+  const [savingNalapide, setSavingNalapide] = useState(false)
+
+  // Rotação de secret (Progem)
   const [confirmRotateSecret, setConfirmRotateSecret] = useState<{ open: boolean }>({ open: false })
   const [rotatingSecret, setRotatingSecret] = useState(false)
   const [rotateResult, setRotateResult] = useState<ApiClientRotateSecretResponse | null>(null)
@@ -197,6 +202,20 @@ export function TenantDetail() {
       setToast({ kind: 'error', message: extractApiMessage(e, 'Falha ao vincular unidade.') })
     } finally {
       setLinking(false)
+    }
+  }
+
+  async function saveNalapide(req: ApiClientNalapideUpdateRequest) {
+    if (!tenant) return
+    setSavingNalapide(true)
+    try {
+      const updated = await http.put<ApiClientDetail>(endpoints.apiClientNalapideUpdate(tenant.id), req)
+      setTenant(updated)
+      setToast({ kind: 'success', message: 'Configuração da NaLápide atualizada com sucesso.' })
+    } catch (e: any) {
+      setToast({ kind: 'error', message: extractApiMessage(e, 'Falha ao atualizar configuração da NaLápide.') })
+    } finally {
+      setSavingNalapide(false)
     }
   }
 
@@ -357,7 +376,7 @@ Eventos obrigatórios:
     }
   }
 
-  // Rotacionar clientSecret (flow premium)
+  // Rotacionar clientSecret (flow premium) — PROGEM
   function openRotate() {
     if (!tenant) return
     setConfirmRotateSecret({ open: true })
@@ -376,6 +395,35 @@ Eventos obrigatórios:
       setToast({ kind: 'error', message: extractApiMessage(e, 'Falha ao rotacionar clientSecret.') })
     } finally {
       setRotatingSecret(false)
+    }
+  }
+
+  // ✅ Rotacionar secret da NaLápide (retorna para o TenantTabNalapide exibir 1x)
+  async function rotateNalapideSecret(): Promise<ApiClientRotateSecretResponse | void> {
+    if (!tenant) return
+    if (savingNalapide) return
+
+    setSavingNalapide(true)
+    try {
+      const res = await http.post<ApiClientRotateSecretResponse>(endpoints.apiClientNalapideRotateSecret(tenant.id), {})
+
+      if (!String(res?.clientSecret ?? '').trim()) {
+        setToast({
+          kind: 'error',
+          message: 'A rotação ocorreu, mas o backend não retornou o novo secret na resposta.',
+        })
+        return
+      }
+
+      setToast({ kind: 'success', message: 'Secret da NaLápide rotacionado. Copie o valor (exibição única).' })
+
+      // ponto-chave: devolver para o Tab mostrar
+      return res
+    } catch (e: any) {
+      setToast({ kind: 'error', message: extractApiMessage(e, 'Falha ao rotacionar secret da NaLápide.') })
+      return
+    } finally {
+      setSavingNalapide(false)
     }
   }
 
@@ -456,7 +504,8 @@ Eventos obrigatórios:
 
             <div className="awis-tabs" role="tablist" aria-label="Seções do tenant">
               <TabButton k="UNIDADES" label="Unidades" />
-              <TabButton k="CREDENCIAIS" label="Credenciais" />
+              <TabButton k="CREDENCIAIS" label="API Progem" />
+              <TabButton k="NALAPIDE" label="API NaLápide" />
               <TabButton k="WEBHOOKS" label="Webhooks" />
               <TabButton k="ENV" label="Variáveis de Ambiente" />
               <TabButton k="IDENTIDADE" label="Visual" />
@@ -488,6 +537,15 @@ Eventos obrigatórios:
               />
             ) : null}
 
+            {tab === 'NALAPIDE' ? (
+              <TenantTabNalapide
+                tenant={tenant}
+                saving={savingNalapide}
+                onSave={saveNalapide}
+                onRotateSecret={rotateNalapideSecret}
+              />
+            ) : null}
+
             {tab === 'WEBHOOKS' ? (
               <TenantTabWebhooks
                 empresaId={tenant.empresaId}
@@ -506,8 +564,6 @@ Eventos obrigatórios:
               />
             ) : null}
 
-            {/* ✅ AQUI ESTÁ O AJUSTE PRINCIPAL:
-                Passamos o apiClientId real (tenant.id) para a aba ENV gerar o .env via /detail e /secret:rotate */}
             {tab === 'ENV' ? <TenantTabEnv apiClientId={tenant.id} /> : null}
 
             {tab === 'IDENTIDADE' ? <TenantTabIdentidade /> : null}
@@ -561,7 +617,7 @@ Eventos obrigatórios:
         onClose={() => setConfirmDeleteWebhook({ open: false })}
       />
 
-      {/* Confirm: Rotacionar secret */}
+      {/* Confirm: Rotacionar secret (Progem) */}
       <ConfirmDialog
         open={confirmRotateSecret.open}
         title="Rotacionar clientSecret"
@@ -572,7 +628,7 @@ Eventos obrigatórios:
         onClose={() => setConfirmRotateSecret({ open: false })}
       />
 
-      {/* Modal: Exibição única */}
+      {/* Modal: Exibição única (Progem) */}
       <SecretOneTimeModal
         open={Boolean(rotateResult)}
         clientId={rotateResult?.clientId ?? tenant?.clientId ?? ''}
