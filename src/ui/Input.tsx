@@ -1,17 +1,21 @@
-import type { InputHTMLAttributes, ReactNode } from 'react'
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
 
 type Props = InputHTMLAttributes<HTMLInputElement> & {
   label?: string
   rightSlot?: ReactNode
 }
 
-export function Input({ label, rightSlot, className, readOnly, ...props }: Props) {
+export const Input = forwardRef<HTMLInputElement, Props>(function Input(
+  { label, rightSlot, className, readOnly, ...props },
+  ref
+) {
   return (
     <label className="awis-field">
       {label ? <div className="awis-label">{label}</div> : null}
 
       <div className="awis-input-wrap">
         <input
+          ref={ref}
           className={[
             'awis-input',
             rightSlot ? 'awis-input-with-right' : '',
@@ -25,4 +29,4 @@ export function Input({ label, rightSlot, className, readOnly, ...props }: Props
       </div>
     </label>
   )
-}
+})

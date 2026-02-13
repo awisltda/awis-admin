@@ -20,6 +20,8 @@ export const endpoints = {
 
   // NaLápide
   apiClientNalapideUpdate: (id: number) => `/api/v1/api-clients/${id}/nalapide`,
+  apiClientNalapideProvision: (id: number) => `/api/v1/api-clients/${id}/nalapide/provision`,
+
   
   apiClientNalapideToken: (id: number) =>
     `/api/v1/api-clients/${id}/nalapide/oauth2:token`,
