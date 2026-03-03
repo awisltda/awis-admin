@@ -1308,7 +1308,383 @@ input:focus {
   }
 
   .awis-modal-scroll {
+
     max-height: calc(100vh - 120px);
     overflow-y: auto;
+  }
+}
+
+/* ============================
+   S3 / Whitelabel Assets (premium mobile)
+============================ */
+
+.s3-wrap{
+  display: grid;
+  gap: 14px;
+}
+
+.s3-topChips{
+  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.s3-topChips::-webkit-scrollbar{ height: 6px; }
+.s3-topChips::-webkit-scrollbar-thumb{ border-radius: 999px; }
+
+.s3-card{
+  display: grid;
+  gap: 12px;
+}
+
+/* Breadcrumbs: scroll + "right actions" */
+.s3-breadcrumbs{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 0;
+}
+.s3-crumb{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.s3-crumbSep{
+  opacity: .5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.s3-breadcrumbsRight{
+  margin-left: auto;
+  padding-left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Actions */
+.s3-actions{
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 880px){
+  .s3-actions{
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.s3-actionBlock{
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card, #fff) 92%, transparent);
+}
+
+.s3-actionRow{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.s3-hint{
+  opacity: .75;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* Upload button (input hidden) */
+.s3-uploadInput{
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.s3-uploadBtn{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border, #ddd) 70%, transparent);
+  background: color-mix(in srgb, var(--card, #fff) 90%, transparent);
+  cursor: pointer;
+  user-select: none;
+}
+.s3-uploadBtn:hover{
+  transform: translateY(-1px);
+}
+.s3-uploadBtn:active{
+  transform: translateY(0);
+}
+.s3-uploadBtn span{
+  font-weight: 600;
+}
+
+/* States */
+.s3-state{
+  padding: 18px 10px;
+}
+.s3-stateTitle{
+  font-weight: 700;
+}
+.s3-stateSub{
+  opacity: .75;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.s3-empty{
+  padding: 18px 10px;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--border, #ddd) 70%, transparent);
+}
+.s3-emptyTitle{
+  font-weight: 800;
+}
+.s3-emptySub{
+  opacity: .75;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+/* Lists */
+.s3-lists{
+  display: grid;
+  gap: 14px;
+}
+.s3-section{
+  display: grid;
+  gap: 8px;
+}
+.s3-sectionHeader{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.s3-sectionTitle{
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.s3-list{
+  display: grid;
+  gap: 10px;
+}
+
+/* Row */
+.s3-row{
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border, #ddd) 70%, transparent);
+  background: color-mix(in srgb, var(--card, #fff) 94%, transparent);
+}
+
+.s3-rowMain{
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.s3-rowMain:disabled{
+  cursor: not-allowed;
+  opacity: .7;
+}
+
+/* For file rows (main is not a button) */
+.s3-rowMainWrap{
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.s3-icon{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--card, #fff) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border, #ddd) 65%, transparent);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.s3-rowTexts{
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.s3-rowTitle{
+  font-weight: 800;
+  line-height: 1.15;
+  word-break: break-word;
+}
+.s3-rowMeta{
+  opacity: .7;
+  font-size: 12px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.s3-fileMeta{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.s3-dot{
+  opacity: .5;
+}
+.s3-muted{
+  opacity: .75;
+  font-size: 12px;
+}
+
+.s3-rowActions{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 520px){
+  .s3-row{
+    flex-direction: column;
+  }
+  .s3-rowActions{
+    justify-content: flex-start;
+  }
+}
+
+/* Light */
+:root{
+  /* ...seus tokens... */
+  --card: var(--surface);
+}
+
+/* Dark */
+:root[data-theme='dark']{
+  /* ...seus tokens... */
+  --card: var(--surface);
+}
+
+
+/* ============================
+   S3 / Whitelabel Assets — Dark fix (token-based)
+   Cole no FINAL do CSS
+============================ */
+
+/* garante que --card exista (evita fallback #fff) */
+:root { --card: var(--surface); }
+:root[data-theme='dark'] { --card: var(--surface); }
+
+/* blocos de ação: no dark precisam ser "elevated", não claros */
+.s3-actionBlock{
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border);
+}
+
+/* botão de upload precisa parecer botão no dark */
+.s3-uploadBtn{
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-3));
+  border: 1px solid var(--border);
+}
+
+/* linhas da lista: usar surface, não branco */
+.s3-row{
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
+  border: 1px solid var(--border);
+}
+
+/* ícones: “pill” suave, porém escuro */
+.s3-icon{
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-3));
+  border: 1px solid var(--border);
+}
+
+/* breadcrumbs: evitar “lavado” no dark */
+.s3-breadcrumbs{
+  padding: 6px 2px;
+}
+
+/* chips: no dark podem ganhar um leve contraste */
+:root[data-theme='dark'] .s3-topChips .awis-badge-muted{
+  background: rgba(255,255,255,0.03);
+}
+
+:root[data-theme='dark'] .s3-row:hover{
+  background: rgba(var(--accent-rgb), 0.06);
+  border-color: rgba(var(--accent-rgb), 0.22);
+}
+:root[data-theme='dark'] .s3-row:active{
+  transform: scale(0.997);
+}
+
+:root[data-theme='dark'] .s3-rowTitle{
+  color: var(--text);
+}
+:root[data-theme='dark'] .s3-rowMeta{
+  color: var(--text-muted);
+}
+
+/* ============================
+   S3 chips — mobile legível
+============================ */
+
+.s3-topChips{
+  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+}
+
+/* cada badge vira "chip" que NÃO encolhe */
+.s3-topChips .awis-badge{
+  flex: 0 0 auto;
+  white-space: nowrap;
+  max-width: 88vw;              /* não estoura a tela */
+}
+
+/* valores longos ficam com ellipsis (bucket e paths grandes) */
+.s3-topChips .awis-badge .awis-mono{
+  display: inline-block;
+  max-width: 58vw;              /* ajusta a leitura */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+/* no mobile, reduz um pouco o padding para caber melhor */
+@media (max-width: 520px){
+  .s3-topChips .awis-badge{
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .s3-topChips .awis-badge .awis-mono{
+    max-width: 52vw;
   }
 }

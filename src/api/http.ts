@@ -51,14 +51,23 @@ async function request<T>(path: string, init?: RequestInit, retry = true): Promi
   const baseUrl = normalizeBaseUrl(session.baseUrl || String(import.meta.env.VITE_API_BASE_URL ?? ''))
   if (!baseUrl) throw { status: 0, message: 'BaseUrl não configurada.' } satisfies ApiError
 
+  const isForm = typeof FormData !== 'undefined' && init?.body instanceof FormData
+
+  const baseHeaders: Record<string, string> = {
+    ...(session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+    ...(session.empresaId ? { 'X-Progem-ID': String(session.empresaId) } : {}),
+    ...(session.deviceId ? { 'X-Device-ID': session.deviceId } : {}),
+  }
+
+  // JSON padrão (não aplicar em FormData para o browser setar boundary)
+  const contentHeaders: Record<string, string> = isForm ? {} : { 'Content-Type': 'application/json' }
+
   const res = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
-      'Content-Type': 'application/json',
-      ...(session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
-      ...(session.empresaId ? { 'X-Progem-ID': String(session.empresaId) } : {}),
-      ...(session.deviceId ? { 'X-Device-ID': session.deviceId } : {}),
+      ...contentHeaders,
+      ...baseHeaders,
     },
   })
 
@@ -100,4 +109,7 @@ export const http = {
   patch: <T>(path: string, data?: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(data ?? {}) }),
   put: <T>(path: string, data?: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(data ?? {}) }),
   del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+
+  // Upload / multipart
+  postForm: <T>(path: string, form: FormData) => request<T>(path, { method: 'POST', body: form }),
 }

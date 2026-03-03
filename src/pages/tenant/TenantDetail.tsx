@@ -38,7 +38,7 @@ import { TenantTabCredenciais } from './tabs/TenantTabCredenciais'
 import { TenantTabNalapide } from './tabs/TenantTabNalapide'
 import { TenantTabWebhooks } from './tabs/TenantTabWebhooks'
 import { TenantTabEnv } from './tabs/TenantTabEnv'
-import { TenantTabIdentidade } from './tabs/TenantTabIdentidade'
+import { TenantTabArquivos } from './tabs/TenantTabArquivos'
 
 export function TenantDetail() {
   const nav = useNavigate()
@@ -508,7 +508,7 @@ Eventos obrigatórios:
               <TabButton k="NALAPIDE" label="API NaLápide" />
               <TabButton k="WEBHOOKS" label="Webhooks" />
               <TabButton k="ENV" label="Variáveis de Ambiente" />
-              <TabButton k="IDENTIDADE" label="Visual" />
+              <TabButton k="ARQUIVOS" label="Arquivos (S3)" />
             </div>
 
             <div className="awis-divider" />
@@ -566,7 +566,9 @@ Eventos obrigatórios:
 
             {tab === 'ENV' ? <TenantTabEnv apiClientId={tenant.id} /> : null}
 
-            {tab === 'IDENTIDADE' ? <TenantTabIdentidade /> : null}
+
+
+            {tab === 'ARQUIVOS' ? <TenantTabArquivos apiClientId={tenant.id} empresaId={tenant.empresaId} /> : null}
 
             <div className="awis-divider" />
             <div className="awis-muted">

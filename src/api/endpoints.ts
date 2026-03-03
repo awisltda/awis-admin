@@ -33,6 +33,26 @@ export const endpoints = {
   // ✅ EXISTENTE: rotacionar clientSecret do próprio ApiClient (Progem)
   apiClientRotateSecret: (id: number) => `/api/v1/api-clients/${id}/secret:rotate`,
 
+  // Whitelabel (S3)
+  apiClientWhitelabelAssets: (apiClientId: number, path?: string) => {
+    const p = String(path ?? '').trim()
+    return p
+      ? `/api/v1/api-clients/${apiClientId}/whitelabel/assets?path=${encodeURIComponent(p)}`
+      : `/api/v1/api-clients/${apiClientId}/whitelabel/assets`
+  },
+
+  apiClientWhitelabelCreateFolder: (apiClientId: number) => `/api/v1/api-clients/${apiClientId}/whitelabel/folders`,
+
+  apiClientWhitelabelUpload: (apiClientId: number, path?: string) => {
+    const p = String(path ?? '').trim()
+    return p
+      ? `/api/v1/api-clients/${apiClientId}/whitelabel/upload?path=${encodeURIComponent(p)}`
+      : `/api/v1/api-clients/${apiClientId}/whitelabel/upload`
+  },
+
+  apiClientWhitelabelDelete: (apiClientId: number, key: string) =>
+    `/api/v1/api-clients/${apiClientId}/whitelabel/object?key=${encodeURIComponent(key)}`,
+
   // Webhooks
   webhooksEndpoints: (empresaId?: number) =>
     empresaId
