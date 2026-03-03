@@ -58,4 +58,27 @@ export type ApiClientNalapideUpdateRequest = {
   clientSecret?: string | null
 }
 
-export type TabKey = 'UNIDADES' | 'CREDENCIAIS' | 'NALAPIDE' | 'WEBHOOKS' | 'ENV' | 'IDENTIDADE'
+export type S3AssetItem = {
+  type: 'FOLDER' | 'FILE'
+  name: string
+  key: string
+  size?: number | null
+  lastModified?: string | null
+  url?: string | null
+}
+
+export type S3AssetListResponse = {
+  bucket: string
+  basePrefix: string
+  currentPath: string
+  items: S3AssetItem[]
+}
+
+export type TabKey =
+  | 'UNIDADES'
+  | 'CREDENCIAIS'
+  | 'NALAPIDE'
+  | 'WEBHOOKS'
+  | 'ENV'
+  | 'IDENTIDADE'
+  | 'ARQUIVOS'
