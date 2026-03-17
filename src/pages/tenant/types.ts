@@ -7,6 +7,7 @@ export type ApiClientDetail = {
   ativo: boolean
   empresaId: number // matriz (X-Progem-ID)
   dominio?: string | null
+  dominioVercel?: string | null
   escopos?: string
 
   // NaLápide API

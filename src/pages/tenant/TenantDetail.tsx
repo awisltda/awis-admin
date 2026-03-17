@@ -1,6 +1,6 @@
 // src/pages/tenant/TenantDetail.tsx
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Card } from '../../ui/Card'
 import { Button } from '../../ui/Button'
 import { Badge } from '../../ui/Badge'
@@ -62,10 +62,8 @@ export function TenantDetail() {
   const [loadingWebhooks, setLoadingWebhooks] = useState(false)
   const [confirmDeleteWebhook, setConfirmDeleteWebhook] = useState<{ open: boolean; id?: number }>({ open: false })
 
-  // NaLápide
   const [savingNalapide, setSavingNalapide] = useState(false)
 
-  // Rotação de secret (Progem)
   const [confirmRotateSecret, setConfirmRotateSecret] = useState<{ open: boolean }>({ open: false })
   const [rotatingSecret, setRotatingSecret] = useState(false)
   const [rotateResult, setRotateResult] = useState<ApiClientRotateSecretResponse | null>(null)
@@ -82,7 +80,7 @@ export function TenantDetail() {
     []
   )
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     if (!apiClientId) return
     setLoading(true)
     try {
@@ -97,14 +95,13 @@ export function TenantDetail() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [apiClientId])
 
   async function loadWebhooks(empresaId: number) {
     if (!empresaId) return
     setLoadingWebhooks(true)
     try {
       const url = endpoints.webhooksEndpoints(empresaId)
-      // wrapper tipado com 1–2 args; aqui precisamos passar headers
       const list = await (http as any).get(url, withEmpresaHeader(empresaId))
       setWebhooks(Array.isArray(list) ? list : [])
     } catch (e: any) {
@@ -116,12 +113,10 @@ export function TenantDetail() {
 
   useEffect(() => {
     loadAll()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiClientId])
+  }, [loadAll])
 
   useEffect(() => {
     if (tab === 'WEBHOOKS' && tenant?.empresaId) loadWebhooks(tenant.empresaId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, tenant?.empresaId])
 
   const matrizId = tenant?.empresaId ?? 0
@@ -233,7 +228,6 @@ export function TenantDetail() {
     )
   }
 
-  // onCopy deve poder ser usado onde esperam void (sem async/Promise explícito)
   function doCopy(label: string, value: string) {
     copyToClipboard(value).then((ok) => {
       setToast({
@@ -244,6 +238,11 @@ export function TenantDetail() {
   }
 
   const tenantDomain = useMemo(() => normalizeDomain(tenant?.dominio ?? ''), [tenant?.dominio])
+
+  const tenantVercelDomain = useMemo(
+    () => normalizeDomain(tenant?.dominioVercel ?? tenant?.dominioVercel ?? ''),
+    [tenant?.dominioVercel]
+  )
 
   const defaultWebhookUrl = useMemo(() => {
     if (!tenantDomain) return ''
@@ -376,7 +375,6 @@ Eventos obrigatórios:
     }
   }
 
-  // Rotacionar clientSecret (flow premium) — PROGEM
   function openRotate() {
     if (!tenant) return
     setConfirmRotateSecret({ open: true })
@@ -387,7 +385,6 @@ Eventos obrigatórios:
     setConfirmRotateSecret({ open: false })
     setRotatingSecret(true)
     try {
-      // seu wrapper SEMPRE manda body JSON; aqui enviamos {} explícito
       const res = await http.post<ApiClientRotateSecretResponse>(endpoints.apiClientRotateSecret(tenant.id), {})
       setRotateResult(res)
       setToast({ kind: 'success', message: 'clientSecret rotacionado. Copie o valor (exibição única).' })
@@ -398,7 +395,6 @@ Eventos obrigatórios:
     }
   }
 
-  // ✅ Rotacionar secret da NaLápide (retorna para o TenantTabNalapide exibir 1x)
   async function rotateNalapideSecret(): Promise<ApiClientRotateSecretResponse | void> {
     if (!tenant) return
     if (savingNalapide) return
@@ -416,8 +412,6 @@ Eventos obrigatórios:
       }
 
       setToast({ kind: 'success', message: 'Secret da NaLápide rotacionado. Copie o valor (exibição única).' })
-
-      // ponto-chave: devolver para o Tab mostrar
       return res
     } catch (e: any) {
       setToast({ kind: 'error', message: extractApiMessage(e, 'Falha ao rotacionar secret da NaLápide.') })
@@ -495,9 +489,27 @@ Eventos obrigatórios:
                 <Badge variant="muted">domínio: —</Badge>
               )}
 
+              {tenantVercelDomain ? (
+                <Badge variant="muted">
+                  domínio Vercel: <span className="awis-mono">{tenantVercelDomain}</span>
+                </Badge>
+              ) : (
+                <Badge variant="muted">domínio Vercel: —</Badge>
+              )}
+
               {tenantDomain ? (
                 <Button variant="ghost" onClick={() => doCopy('domínio', tenantDomain)} title="Copiar domínio">
                   Copiar domínio
+                </Button>
+              ) : null}
+
+              {tenantVercelDomain ? (
+                <Button
+                  variant="ghost"
+                  onClick={() => doCopy('domínio Vercel', tenantVercelDomain)}
+                  title="Copiar domínio Vercel"
+                >
+                  Copiar domínio Vercel
                 </Button>
               ) : null}
             </div>
@@ -530,6 +542,7 @@ Eventos obrigatórios:
               <TenantTabCredenciais
                 tenant={tenant}
                 tenantDomain={tenantDomain}
+                tenantVercelDomain={tenantVercelDomain}
                 scopesList={scopesList}
                 onCopy={doCopy}
                 rotatingSecret={rotatingSecret}
@@ -566,73 +579,57 @@ Eventos obrigatórios:
 
             {tab === 'ENV' ? <TenantTabEnv apiClientId={tenant.id} /> : null}
 
-
-
             {tab === 'ARQUIVOS' ? <TenantTabArquivos apiClientId={tenant.id} empresaId={tenant.empresaId} /> : null}
-
-            <div className="awis-divider" />
-            <div className="awis-muted">
-              <span className="awis-mono">Dica:</span> volte para{' '}
-              <Link className="awis-link" to="/api-clients">
-                API Clients
-              </Link>{' '}
-              para visualizar todos os tenants.
-            </div>
           </div>
         ) : null}
       </Card>
 
-      {/* Confirm: Ativar/Desativar */}
       <ConfirmDialog
         open={confirmToggle.open}
-        title={`${tenant?.ativo ? 'Desativar' : 'Ativar'} API Client`}
+        title={`${tenant?.ativo ? 'Desativar' : 'Ativar'} tenant`}
         description={
           tenant?.ativo
-            ? `Confirma desativar o cliente "${tenant?.nome}"? Essa ação pode impactar integrações e acessos.`
-            : `Confirma ativar o cliente "${tenant?.nome}"?`
+            ? `Confirma desativar o tenant "${tenant?.nome}"?`
+            : `Confirma ativar o tenant "${tenant?.nome}"?`
         }
         confirmText={tenant?.ativo ? 'Desativar' : 'Ativar'}
-        danger={Boolean(tenant?.ativo)}
+        danger={!!tenant?.ativo}
         onConfirm={toggleTenant}
         onClose={() => setConfirmToggle({ open: false })}
       />
 
-      {/* Confirm: Desvincular unidade */}
       <ConfirmDialog
         open={confirmUnlink.open}
         title="Desvincular unidade"
-        description="Confirma desvincular esta unidade adicional deste tenant?"
+        description={`Confirma remover a unidade #${confirmUnlink.unidadeId} deste tenant?`}
         confirmText="Desvincular"
         danger
         onConfirm={unlinkUnidade}
         onClose={() => setConfirmUnlink({ open: false })}
       />
 
-      {/* Confirm: Remover webhook */}
       <ConfirmDialog
         open={confirmDeleteWebhook.open}
-        title="Remover webhook"
-        description="Confirma remover este endpoint de webhook? Essa ação interrompe o recebimento de eventos para esta URL."
-        confirmText="Remover"
+        title="Excluir webhook"
+        description="Confirma remover este endpoint de webhook?"
+        confirmText="Excluir"
         danger
         onConfirm={deleteWebhookNow}
         onClose={() => setConfirmDeleteWebhook({ open: false })}
       />
 
-      {/* Confirm: Rotacionar secret (Progem) */}
       <ConfirmDialog
         open={confirmRotateSecret.open}
-        title="Rotacionar clientSecret"
-        description="Confirma rotacionar o clientSecret? O valor anterior ficará inválido imediatamente."
-        confirmText="Rotacionar"
+        title="Rotacionar clientSecret?"
+        description="Isso invalida o secret atual. Copie o novo valor imediatamente."
+        confirmText={rotatingSecret ? 'Rotacionando…' : 'Rotacionar'}
         danger
         onConfirm={rotateSecretNow}
         onClose={() => setConfirmRotateSecret({ open: false })}
       />
 
-      {/* Modal: Exibição única (Progem) */}
       <SecretOneTimeModal
-        open={Boolean(rotateResult)}
+        open={!!rotateResult}
         clientId={rotateResult?.clientId ?? tenant?.clientId ?? ''}
         clientSecret={rotateResult?.clientSecret ?? ''}
         onCopy={doCopy}
