@@ -49,7 +49,7 @@ function extractApiMessage(e: any, fallback: string) {
   if (apiMsg && String(apiMsg).trim()) return String(apiMsg)
 
   const status = e?.response?.status
-  if (status === 409) return 'Conflito de dados. Verifique clientId, X-Progem-ID (empresaId) e domínio.'
+  if (status === 409) return 'Conflito de dados. Verifique clientId, X-Progem-ID (empresaId), domínio e domínio Vercel.'
   if (status === 400) return 'Dados inválidos. Verifique os campos e tente novamente.'
   if (status === 401) return 'Não autenticado. Faça login novamente.'
   if (status === 403) return 'Sem permissão para esta ação.'
@@ -96,6 +96,7 @@ export function ApiClientsPage() {
     clientId?: string
     empresaId?: string
     dominio?: string
+    dominioVercel?: string
     clientSecret?: string
     scopes?: string[]
     ativo?: boolean
@@ -135,6 +136,7 @@ export function ApiClientsPage() {
       clientId: '',
       empresaId: '',
       dominio: '',
+      dominioVercel: '',
       clientSecret: '',
       scopes: [...SCOPE_OPTIONS],
       ativo: true,
@@ -151,6 +153,7 @@ export function ApiClientsPage() {
       clientId: it.clientId ?? '',
       empresaId: it.empresaId != null ? String(it.empresaId) : '',
       dominio: it.dominio ?? '',
+      dominioVercel: it.dominioVercel ?? it.dominioVercel ?? '',
       clientSecret: '',
       scopes: [...SCOPE_OPTIONS],
       ativo: !!it.ativo,
@@ -172,6 +175,7 @@ export function ApiClientsPage() {
     const empresaId = Number(empresaIdRaw)
 
     const dominio = normalizeDomain(editor.dominio ?? '')
+    const dominioVercel = normalizeDomain(editor.dominioVercel ?? '')
 
     const clientSecret = (editor.clientSecret ?? '').trim()
     const scopesList = (editor.scopes ?? []).filter(Boolean)
@@ -207,6 +211,16 @@ export function ApiClientsPage() {
       }
     }
 
+    if (dominioVercel) {
+      if (dominioVercel.includes(' ') || dominioVercel.length < 4 || !dominioVercel.includes('.')) {
+        setToast({
+          kind: 'error',
+          message: 'Domínio Vercel inválido. Use algo como "cliente-awis.vercel.app" (sem http://).',
+        })
+        return
+      }
+    }
+
     if (editor.mode !== 'EDIT') {
       if (!clientSecret || clientSecret.length < 8) {
         setToast({ kind: 'error', message: 'Informe um clientSecret com pelo menos 8 caracteres.' })
@@ -227,6 +241,7 @@ export function ApiClientsPage() {
           empresaId,
           escopos,
           dominio: dominio || null,
+          dominioVercel: dominioVercel || null,
         }
         if (clientSecret) payload.clientSecret = clientSecret
 
@@ -247,6 +262,7 @@ export function ApiClientsPage() {
           escopos,
           empresaId,
           dominio: dominio || null,
+          dominioVercel: dominioVercel || null,
         }
         await http.post<ApiClientResponse>(endpoints.apiClientCreate(), payload)
 
@@ -288,7 +304,8 @@ export function ApiClientsPage() {
       const clientId = String(x.clientId ?? '').toLowerCase()
       const empresaId = String(x.empresaId ?? '')
       const dominio = String(x.dominio ?? '').toLowerCase()
-      return name.includes(s) || clientId.includes(s) || empresaId.includes(s) || dominio.includes(s)
+      const dominioVercel = String(x.dominioVercel ?? x.dominioVercel ?? '').toLowerCase()
+      return name.includes(s) || clientId.includes(s) || empresaId.includes(s) || dominio.includes(s) || dominioVercel.includes(s)
     })
   }, [items, q])
 
@@ -347,7 +364,6 @@ export function ApiClientsPage() {
           </div>
         }
       >
-        {/* KPI row */}
         <div className="awis-row awis-row--wrap" style={{ gap: 10, alignItems: 'center' }}>
           <Badge variant="muted">
             Total: <span className="awis-mono">{stats.total}</span>
@@ -366,7 +382,7 @@ export function ApiClientsPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <Input
               label="Buscar"
-              placeholder="Buscar por nome, clientId, X-Progem-ID ou domínio…"
+              placeholder="Buscar por nome, clientId, X-Progem-ID, domínio ou domínio Vercel…"
               name="tenant-search"
               autoComplete="off"
               value={q}
@@ -396,7 +412,7 @@ export function ApiClientsPage() {
             <div className="awis-state-title">Nenhum resultado</div>
             <div className="awis-state-sub">
               {q.trim()
-                ? 'Não encontramos nenhum API Client com este termo. Tente buscar por clientId, X-Progem-ID ou domínio.'
+                ? 'Não encontramos nenhum API Client com este termo. Tente buscar por clientId, X-Progem-ID, domínio ou domínio Vercel.'
                 : 'Ainda não há API Clients cadastrados.'}
             </div>
           </div>
@@ -407,7 +423,6 @@ export function ApiClientsPage() {
             className="awis-table"
             role="table"
             aria-label="Lista de tenants"
-            // ✅ colunas: X-Progem-ID | Domínio | Nome | Status | Ações
             style={{ ['--cols' as any]: '140px 260px 1.1fr 130px 220px' }}
           >
             <div className="awis-tr awis-th" role="row">
@@ -423,6 +438,8 @@ export function ApiClientsPage() {
             {filtered.map((it) => {
               const domainRaw = String(it.dominio ?? '')
               const domain = normalizeDomain(domainRaw)
+              const domainVercelRaw = String(it.dominioVercel ?? it.dominioVercel ?? '')
+              const domainVercel = normalizeDomain(domainVercelRaw)
               const url = domain ? toHttpUrl(domain) : ''
               return (
                 <div key={it.id} className="awis-tr" role="row">
@@ -447,6 +464,20 @@ export function ApiClientsPage() {
                     ) : (
                       <span className="awis-muted">—</span>
                     )}
+                    {domainVercel ? (
+                              <a
+                        className="awis-link"
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        title={`Abrir ${url}`}
+                        style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}
+                      >
+                      <div className="awis-muted" style={{ fontSize: 12, marginTop: 4 }}>
+                        Vercel: <span className="awis-mono">{domainVercel}</span>
+                      </div>
+                      </a>
+                    ) : null}
                   </div>
 
                   <div data-label="Nome" className="awis-cell-name" role="cell">
@@ -458,7 +489,6 @@ export function ApiClientsPage() {
                       <span className="awis-muted">—</span>
                     )}
 
-                    {/* ✅ Removido o domínio daqui (fica apenas na 2ª coluna) */}
                     <div className="awis-muted" style={{ fontSize: 12, marginTop: 2 }}>
                       clientId: <span className="awis-mono">{it.clientId}</span>
                       <span className="awis-muted"> · </span>
@@ -485,13 +515,12 @@ export function ApiClientsPage() {
         ) : null}
       </Card>
 
-      {/* Modal Create / Edit */}
       {editor.open ? (
         <div className="awis-modal-backdrop" role="dialog" aria-modal="true">
           <div className="awis-modal">
             <Card
               title={editor.mode === 'EDIT' ? 'Editar tenant' : 'Novo tenant'}
-              subtitle="Edite nome, clientId, X-Progem-ID (empresaId), domínio, escopos e (opcionalmente) o clientSecret."
+              subtitle="Edite nome, clientId, X-Progem-ID (empresaId), domínio público, domínio Vercel, escopos e (opcionalmente) o clientSecret."
               right={
                 <Button variant="ghost" onClick={closeEditor} disabled={!!editor.loading}>
                   Fechar
@@ -500,7 +529,6 @@ export function ApiClientsPage() {
             >
               <div className="awis-modal-scroll">
                 <div className="awis-stack" style={{ gap: 14 }}>
-                  {/* Context chips */}
                   <div className="awis-row awis-row--wrap" style={{ gap: 10 }}>
                     <Badge variant="muted">
                       Modo: <span className="awis-mono">{editor.mode === 'EDIT' ? 'EDIT' : 'NEW'}</span>
@@ -518,6 +546,11 @@ export function ApiClientsPage() {
                     {normalizeDomain(editor.dominio ?? '') ? (
                       <Badge variant="muted">
                         domínio: <span className="awis-mono">{normalizeDomain(editor.dominio ?? '')}</span>
+                      </Badge>
+                    ) : null}
+                    {normalizeDomain(editor.dominioVercel ?? '') ? (
+                      <Badge variant="muted">
+                        domínio Vercel: <span className="awis-mono">{normalizeDomain(editor.dominioVercel ?? '')}</span>
                       </Badge>
                     ) : null}
                   </div>
@@ -567,6 +600,20 @@ export function ApiClientsPage() {
                   <div className="hint" style={{ marginTop: -6 }}>
                     Se informado, o domínio é normalizado (remove <span className="awis-mono">http(s)://</span> e barra
                     final). Recomendado manter único por tenant.
+                  </div>
+
+                  <Input
+                    label="Domínio Vercel (opcional)"
+                    placeholder='ex: "cliente-awis.vercel.app" (sem http://)'
+                    name="tenant-dominio-vercel"
+                    autoComplete="off"
+                    value={editor.dominioVercel ?? ''}
+                    onChange={(e) => setEditor((s) => ({ ...s, dominioVercel: e.target.value }))}
+                    disabled={!!editor.loading}
+                  />
+                  <div className="hint" style={{ marginTop: -6 }}>
+                    Campo técnico de publicação/deploy na Vercel. Não substitui o <span className="awis-mono">domínio</span>
+                    público do cliente.
                   </div>
 
                   <Input
@@ -688,6 +735,9 @@ export function ApiClientsPage() {
                     <span className="awis-muted"> · </span>
                     <span className="awis-mono">domínio</span>:{' '}
                     <span className="awis-mono">{normalizeDomain(editor.dominio ?? '') ? 'ok' : '—'}</span>
+                    <span className="awis-muted"> · </span>
+                    <span className="awis-mono">domínio Vercel</span>:{' '}
+                    <span className="awis-mono">{normalizeDomain(editor.dominioVercel ?? '') ? 'ok' : '—'}</span>
                   </div>
                 </div>
               </div>

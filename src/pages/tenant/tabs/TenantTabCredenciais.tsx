@@ -6,13 +6,14 @@ import type { ApiClientDetail } from '../types'
 export function TenantTabCredenciais(props: {
   tenant: ApiClientDetail
   tenantDomain: string
+  tenantVercelDomain: string
   scopesList: string[]
   onCopy: (label: string, value: string) => void
 
   rotatingSecret: boolean
   onOpenRotate: () => void
 }) {
-  const { tenant, tenantDomain, scopesList, onCopy, rotatingSecret, onOpenRotate } = props
+  const { tenant, tenantDomain, tenantVercelDomain, scopesList, onCopy, rotatingSecret, onOpenRotate } = props
 
   return (
     <div className="awis-stack" style={{ gap: 14 }}>
@@ -62,6 +63,18 @@ export function TenantTabCredenciais(props: {
                 </div>
               </div>
               <Button variant="ghost" onClick={() => onCopy('domínio', tenantDomain)} disabled={!tenantDomain}>
+                Copiar
+              </Button>
+            </div>
+
+            <div className="awis-list-item" role="listitem">
+              <div style={{ minWidth: 0 }}>
+                <div className="awis-list-title">Domínio Vercel</div>
+                <div className="awis-muted" style={{ fontSize: 12 }}>
+                  <span className="awis-mono">{tenantVercelDomain || '—'}</span>
+                </div>
+              </div>
+              <Button variant="ghost" onClick={() => onCopy('domínio Vercel', tenantVercelDomain)} disabled={!tenantVercelDomain}>
                 Copiar
               </Button>
             </div>

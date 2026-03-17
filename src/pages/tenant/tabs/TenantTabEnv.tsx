@@ -16,7 +16,8 @@ type ApiClientDetailResponse = {
   ativo: boolean
   empresaId: number
   escopos?: string | null
-  dominio: string
+  dominio?: string | null
+  dominioVercel?: string | null
 }
 
 type ApiClientRotateSecretResponse = {
@@ -154,10 +155,8 @@ export function TenantTabEnv({ apiClientId }: Props) {
   const [detail, setDetail] = useState<ApiClientDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Secret não é lido. Só aparece quando rotaciona (fluxo seguro).
   const [clientSecret, setClientSecret] = useState<string>('')
 
-  // ajustes locais do artefato (não alteram cadastro)
   const [frontendUrlDraft, setFrontendUrlDraft] = useState('')
   const [vendedorEmailDraft, setVendedorEmailDraft] = useState('')
 
@@ -172,17 +171,19 @@ export function TenantTabEnv({ apiClientId }: Props) {
     async function load() {
       setLoading(true)
       try {
-        // ✅ endpoints são funções no seu projeto
         const res = await http.get<ApiClientDetailResponse>(endpoints.apiClientDetail(apiClientId))
         if (!alive) return
 
         setDetail(res)
 
-        // defaults “bons”
-        const url = normalizeDomainToUrl(res.dominio)
-        const mail = defaultSellerEmailFromDomain(res.dominio)
-        setFrontendUrlDraft(url)
-        setVendedorEmailDraft(mail)
+        const publicDomain = safe(res.dominio)
+        const deployDomain = safe(res.dominioVercel)
+
+        const preferredFrontendDomain = deployDomain || publicDomain
+        const preferredEmailDomain = publicDomain || deployDomain
+
+        setFrontendUrlDraft(normalizeDomainToUrl(preferredFrontendDomain))
+        setVendedorEmailDraft(defaultSellerEmailFromDomain(preferredEmailDomain))
       } catch {
         if (!alive) return
         setToast({ kind: 'error', message: 'Não foi possível carregar os detalhes do tenant.' })
@@ -205,6 +206,9 @@ export function TenantTabEnv({ apiClientId }: Props) {
   const missingSecret = !safe(clientSecret)
   const missingFrontend = !frontendUrl
   const missingEmail = !vendedorEmailPadrao
+
+  const dominioPublico = useMemo(() => domainOnly(detail?.dominio ?? ''), [detail?.dominio])
+  const dominioVercel = useMemo(() => domainOnly(detail?.dominioVercel ?? ''), [detail?.dominioVercel])
 
   const envSnippet = useMemo(() => {
     if (!detail) return ''
@@ -352,16 +356,43 @@ export function TenantTabEnv({ apiClientId }: Props) {
 
       <div className="awis-callout">
         <div className="awis-stack" style={{ gap: 10 }}>
+          <div style={{ fontWeight: 800 }}>Domínios de referência</div>
+          <div className="awis-muted">
+            {dominioVercel ? (
+              <>
+                Domínio técnico de publicação na Vercel: <span className="awis-mono">{dominioVercel}</span>. Ele foi usado
+                como padrão para <span className="awis-mono">FRONTEND_URL</span> e <span className="awis-mono">CORS_ORIGINS</span>.
+              </>
+            ) : dominioPublico ? (
+              <>
+                Sem domínio Vercel cadastrado. Foi usado o domínio público <span className="awis-mono">{dominioPublico}</span> como fallback.
+              </>
+            ) : (
+              <>
+                Nenhum domínio cadastrado. Preencha manualmente o <span className="awis-mono">FRONTEND_URL</span> abaixo.
+              </>
+            )}
+          </div>
+          {dominioPublico ? <Badge variant="muted">Domínio público: <span className="awis-mono">{dominioPublico}</span></Badge> : null}
+          {dominioVercel ? <Badge variant="muted">Domínio Vercel: <span className="awis-mono">{dominioVercel}</span></Badge> : null}
+        </div>
+      </div>
+
+      <div className="awis-callout">
+        <div className="awis-stack" style={{ gap: 10 }}>
           <div style={{ fontWeight: 800 }}>Parâmetros do whitelabel</div>
 
           <div className="awis-stack" style={{ gap: 8 }}>
-            <div className="awis-muted">Domínio do site</div>
+            <div className="awis-muted">URL do frontend publicado</div>
             <input
               className="awis-input"
               value={frontendUrlDraft}
               onChange={(e) => setFrontendUrlDraft(e.target.value)}
               placeholder="https://suaempresa.com.br"
             />
+            <div className="awis-muted" style={{ fontSize: 12 }}>
+              Prioridade automática: <span className="awis-mono">dominioVercel</span> → fallback para <span className="awis-mono">dominio</span>.
+            </div>
           </div>
 
           <div className="awis-stack" style={{ gap: 8 }}>
@@ -372,6 +403,9 @@ export function TenantTabEnv({ apiClientId }: Props) {
               onChange={(e) => setVendedorEmailDraft(e.target.value)}
               placeholder="site@suaempresa.com.br"
             />
+            <div className="awis-muted" style={{ fontSize: 12 }}>
+              Prioridade automática: <span className="awis-mono">dominio</span> → fallback para <span className="awis-mono">dominioVercel</span>.
+            </div>
           </div>
 
           <Badge variant="muted">Esses campos ajustam apenas o artefato .env (não alteram o cadastro)</Badge>
