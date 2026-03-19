@@ -4,6 +4,7 @@ import { RequireAnyRole } from '../auth/RequireAnyRole'
 import { Shell } from '../layout/Shell'
 import { ApiClientsPage } from '../features/apiClients/ApiClientsPage'
 import { UsersPage } from '../features/users/UsersPage'
+import { TenantImplantacaoPage } from '../features/tenantImplantacao/page/TenantImplantacaoPage'
 import { Login } from '../pages/Login'
 import { TenantDetail } from '../pages/tenant/TenantDetail'
 
@@ -42,6 +43,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireRole role="AWIS">
             <TenantDetail />
+          </RequireRole>
+        ),
+      },
+      {
+        path: 'implantacao-tenants',
+        element: (
+          <RequireRole role="AWIS">
+            <TenantImplantacaoPage />
           </RequireRole>
         ),
       },

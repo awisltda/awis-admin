@@ -67,13 +67,23 @@ export function Sidebar({ mobile, onNavigate, onClose }: Props) {
 
       <nav className="awis-nav">
         {isAwis ? (
-          <NavLink
-            to="/api-clients"
-            onClick={onNavigate}
-            className={({ isActive }) => (isActive ? 'active' : '')}
-          >
-            API Clients
-          </NavLink>
+          <>
+            <NavLink
+              to="/api-clients"
+              onClick={onNavigate}
+              className={({ isActive }) => (isActive ? 'active' : '')}
+            >
+              API Clients
+            </NavLink>
+
+            <NavLink
+              to="/implantacao-tenants"
+              onClick={onNavigate}
+              className={({ isActive }) => (isActive ? 'active' : '')}
+            >
+              Implantação de Tenants
+            </NavLink>
+          </>
         ) : null}
 
         {isAwis || isAdm ? (

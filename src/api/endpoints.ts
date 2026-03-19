@@ -18,6 +18,10 @@ export const endpoints = {
 
   apiClientDetail: (id: number) => `/api/v1/api-clients/${id}/detail`,
 
+
+  apiClientsImplantacaoList: () => `/api/v1/api-clients/implantacao-list`,
+  apiClientImplantacao: (id: number) => `/api/v1/api-clients/${id}/implantacao`,
+
   // NaLápide
   apiClientNalapideUpdate: (id: number) => `/api/v1/api-clients/${id}/nalapide`,
   apiClientNalapideProvision: (id: number) => `/api/v1/api-clients/${id}/nalapide/provision`,
