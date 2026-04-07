@@ -5,6 +5,8 @@ export type ApiClientResponse = {
   empresaId?: number
   dominio?: string | null
   dominioVercel?: string | null
+  habilitaMemorial?: boolean
+  habilitaBeneficios?: boolean
 
   // tolera campos adicionais vindos do backend sem quebrar
   [k: string]: any
