@@ -497,6 +497,15 @@ Eventos obrigatórios:
                 <Badge variant="muted">domínio Vercel: —</Badge>
               )}
 
+              <Badge variant="muted">
+                Memorial:{' '}
+                <span className="awis-mono">{tenant.habilitaMemorial !== false ? 'sim' : 'não'}</span>
+              </Badge>
+              <Badge variant="muted">
+                Benefícios:{' '}
+                <span className="awis-mono">{tenant.habilitaBeneficios !== false ? 'sim' : 'não'}</span>
+              </Badge>
+
               {tenantDomain ? (
                 <Button variant="ghost" onClick={() => doCopy('domínio', tenantDomain)} title="Copiar domínio">
                   Copiar domínio
