@@ -101,6 +101,8 @@ export function ApiClientsPage() {
     scopes?: string[]
     ativo?: boolean
     originalAtivo?: boolean
+    habilitaMemorial?: boolean
+    habilitaBeneficios?: boolean
   }>({ open: false })
 
   const [confirm, setConfirm] = useState<{
@@ -140,6 +142,8 @@ export function ApiClientsPage() {
       clientSecret: '',
       scopes: [...SCOPE_OPTIONS],
       ativo: true,
+      habilitaMemorial: true,
+      habilitaBeneficios: true,
     })
   }
 
@@ -158,6 +162,8 @@ export function ApiClientsPage() {
       scopes: [...SCOPE_OPTIONS],
       ativo: !!it.ativo,
       originalAtivo: !!it.ativo,
+      habilitaMemorial: typeof it.habilitaMemorial === 'boolean' ? it.habilitaMemorial : true,
+      habilitaBeneficios: typeof it.habilitaBeneficios === 'boolean' ? it.habilitaBeneficios : true,
     })
   }
 
@@ -232,6 +238,9 @@ export function ApiClientsPage() {
       }
     }
 
+    const habilitaMemorial = editor.habilitaMemorial !== false
+    const habilitaBeneficios = editor.habilitaBeneficios !== false
+
     setEditor((s) => ({ ...s, loading: true }))
     try {
       if (editor.mode === 'EDIT' && editor.id) {
@@ -242,6 +251,8 @@ export function ApiClientsPage() {
           escopos,
           dominio: dominio || null,
           dominioVercel: dominioVercel || null,
+          habilitaMemorial,
+          habilitaBeneficios,
         }
         if (clientSecret) payload.clientSecret = clientSecret
 
@@ -263,6 +274,8 @@ export function ApiClientsPage() {
           empresaId,
           dominio: dominio || null,
           dominioVercel: dominioVercel || null,
+          habilitaMemorial,
+          habilitaBeneficios,
         }
         await http.post<ApiClientResponse>(endpoints.apiClientCreate(), payload)
 
@@ -709,15 +722,35 @@ export function ApiClientsPage() {
                   </details>
 
                   <div className="awis-row" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                    <label className="awis-row" style={{ gap: 10, userSelect: 'none' }}>
-                      <input
-                        type="checkbox"
-                        checked={editor.ativo !== false}
-                        onChange={(e) => setEditor((s) => ({ ...s, ativo: e.target.checked }))}
-                        disabled={!!editor.loading}
-                      />
-                      <span style={{ fontWeight: 600 }}>Ativo</span>
-                    </label>
+                    <div className="awis-row" style={{ gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <label className="awis-row" style={{ gap: 10, userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={editor.habilitaMemorial !== false}
+                          onChange={(e) => setEditor((s) => ({ ...s, habilitaMemorial: e.target.checked }))}
+                          disabled={!!editor.loading}
+                        />
+                        <span style={{ fontWeight: 600 }}>Habilita Memorial</span>
+                      </label>
+                      <label className="awis-row" style={{ gap: 10, userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={editor.habilitaBeneficios !== false}
+                          onChange={(e) => setEditor((s) => ({ ...s, habilitaBeneficios: e.target.checked }))}
+                          disabled={!!editor.loading}
+                        />
+                        <span style={{ fontWeight: 600 }}>Habilita Benefícios</span>
+                      </label>
+                      <label className="awis-row" style={{ gap: 10, userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={editor.ativo !== false}
+                          onChange={(e) => setEditor((s) => ({ ...s, ativo: e.target.checked }))}
+                          disabled={!!editor.loading}
+                        />
+                        <span style={{ fontWeight: 600 }}>Ativo</span>
+                      </label>
+                    </div>
 
                     <div className="awis-row" style={{ gap: 10 }}>
                       <Button variant="primary" onClick={saveEditor} disabled={!!editor.loading}>

@@ -9,6 +9,8 @@ export type ApiClientDetail = {
   dominio?: string | null
   dominioVercel?: string | null
   escopos?: string
+  habilitaMemorial?: boolean
+  habilitaBeneficios?: boolean
 
   // NaLápide API
   nalapideEnabled?: boolean | null
