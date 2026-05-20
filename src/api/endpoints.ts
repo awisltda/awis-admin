@@ -1,6 +1,7 @@
 export const endpoints = {
   authLogin: () => `/api/v1/app/auth/login`,
   authRefresh: () => `/api/v1/app/auth/refresh`,
+  authLogout: () => `/api/v1/app/auth/logout`,
 
   apiClients: () => `/api/v1/api-clients`,
   apiClientById: (id: number) => `/api/v1/api-clients/${id}`,

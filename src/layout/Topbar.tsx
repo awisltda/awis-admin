@@ -62,7 +62,7 @@ export function Topbar({ onOpenNav }: Props) {
 
           <div className="awis-user">{payload?.sub ?? 'awis'}</div>
 
-          <Button variant="ghost" onClick={logout}>
+          <Button variant="ghost" onClick={() => void logout()}>
             Sair
           </Button>
         </div>
@@ -104,7 +104,7 @@ export function Topbar({ onOpenNav }: Props) {
                 className="awis-topbar-menu-item danger"
                 onClick={() => {
                   setMenuOpen(false)
-                  logout()
+                  void logout()
                 }}
               >
                 Sair

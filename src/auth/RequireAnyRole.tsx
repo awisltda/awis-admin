@@ -43,7 +43,7 @@ export function RequireAnyRole({ roles, children }: { roles: string[]; children:
           <Button
             variant="ghost"
             onClick={() => {
-              logout()
+              void logout()
               nav('/login', { replace: true })
             }}
           >
