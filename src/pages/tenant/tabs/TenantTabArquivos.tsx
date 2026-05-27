@@ -91,6 +91,7 @@ export function TenantTabArquivos({ apiClientId, empresaId }: Props) {
   const [creatingFolder, setCreatingFolder] = useState(false)
 
   const [uploading, setUploading] = useState(false)
+  const [versionedUpload, setVersionedUpload] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; item?: S3AssetItem }>({ open: false })
 
   const crumbs = useMemo(() => splitPath(path), [path])
@@ -158,7 +159,7 @@ export function TenantTabArquivos({ apiClientId, empresaId }: Props) {
       for (const f of Array.from(files)) {
         const fd = new FormData()
         fd.append('file', f)
-        await http.postForm(endpoints.apiClientWhitelabelUpload(apiClientId, path), fd)
+        await http.postForm(endpoints.apiClientWhitelabelUpload(apiClientId, path, versionedUpload), fd)
       }
       setToast({ kind: 'success', message: `Upload concluído (${files.length} arquivo(s)).` })
       await load(path)
@@ -216,7 +217,10 @@ export function TenantTabArquivos({ apiClientId, empresaId }: Props) {
         </Badge>
       </div>
 
-      <Card title="Arquivos do Whitelabel" subtitle="Gerencie pastas e arquivos no S3.">
+      <Card
+        title="Arquivos do Whitelabel"
+        subtitle="Gerenciador genérico S3. Logos, banners (planos.png, pet.png…), sobre/ (hero-sobre.jpg): overwrite incrementa assetsRevision. Prefira Identidade para ícones de marca."
+      >
         <div className="s3-card">
           {/* Breadcrumbs (scroll horizontal) */}
           <div className="s3-breadcrumbs">
@@ -282,8 +286,18 @@ export function TenantTabArquivos({ apiClientId, empresaId }: Props) {
                   />
                   <span>{uploading ? 'Enviando…' : 'Selecionar arquivos'}</span>
                 </label>
-
                 <Badge variant="muted">{safe(path) ? `Destino: /${safe(path)}` : 'Destino: / (root)'}</Badge>
+              </div>
+              <div className="s3-hint">
+                <label className="awis-row" style={{ gap: 8, alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={versionedUpload}
+                    onChange={(e) => setVersionedUpload(e.target.checked)}
+                    disabled={busy}
+                  />
+                  Upload versionado (nome com hash — evita cache preso ao substituir)
+                </label>
               </div>
 
               <div className="s3-hint">Uploads múltiplos são enviados sequencialmente para manter estabilidade.</div>

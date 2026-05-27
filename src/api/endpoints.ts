@@ -48,15 +48,23 @@ export const endpoints = {
 
   apiClientWhitelabelCreateFolder: (apiClientId: number) => `/api/v1/api-clients/${apiClientId}/whitelabel/folders`,
 
-  apiClientWhitelabelUpload: (apiClientId: number, path?: string) => {
+  apiClientWhitelabelUpload: (apiClientId: number, path?: string, versioned?: boolean) => {
     const p = String(path ?? '').trim()
+    const v = versioned ? '&versioned=true' : ''
     return p
-      ? `/api/v1/api-clients/${apiClientId}/whitelabel/upload?path=${encodeURIComponent(p)}`
-      : `/api/v1/api-clients/${apiClientId}/whitelabel/upload`
+      ? `/api/v1/api-clients/${apiClientId}/whitelabel/upload?path=${encodeURIComponent(p)}${v}`
+      : `/api/v1/api-clients/${apiClientId}/whitelabel/upload${versioned ? '?versioned=true' : ''}`
   },
 
   apiClientWhitelabelDelete: (apiClientId: number, key: string) =>
     `/api/v1/api-clients/${apiClientId}/whitelabel/object?key=${encodeURIComponent(key)}`,
+
+  apiClientBranding: (apiClientId: number) => `/api/v1/api-clients/${apiClientId}/branding`,
+  apiClientBrandingUploadSlot: (apiClientId: number, slot: string) =>
+    `/api/v1/api-clients/${apiClientId}/branding/assets/${encodeURIComponent(slot)}`,
+  apiClientBrandingDeleteSlot: (apiClientId: number, slot: string) =>
+    `/api/v1/api-clients/${apiClientId}/branding/assets/${encodeURIComponent(slot)}`,
+  apiClientBrandingImport: (apiClientId: number) => `/api/v1/api-clients/${apiClientId}/branding/import`,
 
   // Webhooks
   webhooksEndpoints: (empresaId?: number) =>
