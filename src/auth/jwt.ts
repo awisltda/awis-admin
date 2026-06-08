@@ -21,8 +21,9 @@ export function decodeJwt(token: string): JwtPayload | null {
   }
 }
 
-export function isExpired(payload: JwtPayload | null): boolean {
+/** Considera expirado se faltar menos de skewSec para o vencimento. */
+export function isExpired(payload: JwtPayload | null, skewSec = 0): boolean {
   if (!payload?.exp) return false
   const now = Math.floor(Date.now() / 1000)
-  return payload.exp <= now
+  return payload.exp <= now + skewSec
 }
