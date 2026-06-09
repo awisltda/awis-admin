@@ -40,7 +40,7 @@ export function RequireRole({ role, children }: { role: string; children: React.
           <Button
             variant="ghost"
             onClick={() => {
-              logout()
+              void logout()
               nav('/login', { replace: true })
             }}
           >

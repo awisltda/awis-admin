@@ -1,8 +1,11 @@
 import { loadSession, saveSession } from '../lib/sessionStorage'
+import {
+  refreshSessionTokens,
+  shouldAttemptAuthRefresh,
+} from '../auth/session'
+import { notifySessionInvalid, notifyTokensRefreshed } from '../auth/sessionBridge'
 
 type ApiError = { status: number; message: string; details?: unknown }
-
-let refreshPromise: Promise<{ accessToken: string; refreshToken?: string }> | null = null
 
 function normalizeBaseUrl(url: string) {
   return String(url ?? '').trim().replace(/\/+$/, '')
@@ -16,42 +19,13 @@ function safeJson(text: string) {
   }
 }
 
-async function doRefresh(
-  baseUrl: string,
-  deviceId: string,
-  refreshToken: string
-): Promise<{ accessToken: string; refreshToken?: string }> {
-  const res = await fetch(`${baseUrl}/api/v1/app/auth/refresh`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(deviceId ? { 'X-Device-ID': deviceId } : {}),
-    },
-    body: JSON.stringify({ refreshToken }),
-  })
-
-  const text = await res.text()
-  const body = text ? safeJson(text) : null
-
-  if (!res.ok) {
-    const msg = (body && (body.message || body.error || body.title)) || `Erro HTTP ${res.status}`
-    throw { status: res.status, message: String(msg), details: body } satisfies ApiError
-  }
-
-  const accessToken = String(body?.access_token ?? body?.accessToken ?? '').trim()
-  const newRefreshToken = String(body?.refresh_token ?? body?.refreshToken ?? '').trim()
-  if (!accessToken) {
-    throw { status: 0, message: 'Refresh não retornou access_token.', details: body } satisfies ApiError
-  }
-  return { accessToken, refreshToken: newRefreshToken || undefined }
-}
-
 async function request<T>(path: string, init?: RequestInit, retry = true): Promise<T> {
   const session = loadSession()
   const baseUrl = normalizeBaseUrl(session.baseUrl || String(import.meta.env.VITE_API_BASE_URL ?? ''))
   if (!baseUrl) throw { status: 0, message: 'BaseUrl não configurada.' } satisfies ApiError
 
   const isForm = typeof FormData !== 'undefined' && init?.body instanceof FormData
+  const hadBearer = Boolean(session.accessToken)
 
   const baseHeaders: Record<string, string> = {
     ...(session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
@@ -59,7 +33,6 @@ async function request<T>(path: string, init?: RequestInit, retry = true): Promi
     ...(session.deviceId ? { 'X-Device-ID': session.deviceId } : {}),
   }
 
-  // JSON padrão (não aplicar em FormData para o browser setar boundary)
   const contentHeaders: Record<string, string> = isForm ? {} : { 'Content-Type': 'application/json' }
 
   const res = await fetch(`${baseUrl}${path}`, {
@@ -71,24 +44,23 @@ async function request<T>(path: string, init?: RequestInit, retry = true): Promi
     },
   })
 
-  // Tenta refresh automático uma vez em 401
-  if (res.status === 401 && retry && session.refreshToken) {
+  if (
+    retry &&
+    shouldAttemptAuthRefresh(res.status, hadBearer, Boolean(session.refreshToken))
+  ) {
     try {
-      if (!refreshPromise) {
-        refreshPromise = doRefresh(baseUrl, session.deviceId, session.refreshToken).finally(() => {
-          refreshPromise = null
-        })
-      }
-      const refreshed = await refreshPromise
+      const refreshed = await refreshSessionTokens(session)
       saveSession({
         ...session,
         baseUrl,
         accessToken: refreshed.accessToken,
-        refreshToken: refreshed.refreshToken ?? session.refreshToken,
+        refreshToken: refreshed.refreshToken,
       })
+      notifyTokensRefreshed(refreshed.accessToken, refreshed.refreshToken)
       return request<T>(path, init, false)
-    } catch (e) {
-      // Se refresh falhar, segue para o tratamento padrão do 401
+    } catch {
+      notifySessionInvalid('session_expired')
+      throw { status: 401, message: 'Sessão expirada. Faça login novamente.' } satisfies ApiError
     }
   }
 
@@ -109,7 +81,5 @@ export const http = {
   patch: <T>(path: string, data?: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(data ?? {}) }),
   put: <T>(path: string, data?: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(data ?? {}) }),
   del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
-
-  // Upload / multipart
   postForm: <T>(path: string, form: FormData) => request<T>(path, { method: 'POST', body: form }),
 }

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { Card } from '../ui/Card'
 import { Input } from '../ui/Input'
@@ -17,7 +17,9 @@ function uuid() {
 
 export function Login() {
   const nav = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login } = useAuth()
+  const sessionExpired = searchParams.get('session_expired') === '1'
 
   const existing = loadSession()
 
@@ -163,6 +165,12 @@ export function Login() {
                 <div className="hint">O Empresa-ID define o tenant de origem da autenticação.</div>
               </div>
             </details>
+
+            {sessionExpired ? (
+              <div className="awis-login-warn">
+                Sua sessão expirou por inatividade. Entre novamente para continuar.
+              </div>
+            ) : null}
 
             {err ? <div className="awis-error">{err}</div> : null}
 
