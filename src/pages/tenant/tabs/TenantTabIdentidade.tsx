@@ -120,7 +120,10 @@ export function TenantTabIdentidade({ apiClientId, empresaId }: Props) {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const res = await http.postForm(endpoints.apiClientBrandingUploadSlot(apiClientId, slot), fd)
+      const res = await http.postForm<{ manifest?: BrandingManifest }>(
+        endpoints.apiClientBrandingUploadSlot(apiClientId, slot),
+        fd
+      )
       setManifest(res?.manifest ?? manifest)
       setToast({ kind: 'success', message: `${slot} atualizado (rev. ${res?.manifest?.assetsRevision ?? '?'})` })
       await load()
@@ -138,7 +141,7 @@ export function TenantTabIdentidade({ apiClientId, empresaId }: Props) {
     if (!slot) return
     setConfirmDelete({ open: false })
     try {
-      const res = await http.del(endpoints.apiClientBrandingDeleteSlot(apiClientId, slot))
+      const res = await http.del<BrandingManifest>(endpoints.apiClientBrandingDeleteSlot(apiClientId, slot))
       setManifest(res)
       setToast({ kind: 'success', message: `${slot} removido do bucket (path canônico mantido no manifest).` })
       await load()
