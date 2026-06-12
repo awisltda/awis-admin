@@ -40,6 +40,7 @@ import { TenantTabWebhooks } from './tabs/TenantTabWebhooks'
 import { TenantTabEnv } from './tabs/TenantTabEnv'
 import { TenantTabArquivos } from './tabs/TenantTabArquivos'
 import { TenantTabIdentidade } from './tabs/TenantTabIdentidade'
+import { TenantTabSobreNos } from './tabs/TenantTabSobreNos'
 
 export function TenantDetail() {
   const nav = useNavigate()
@@ -531,6 +532,7 @@ Eventos obrigatórios:
               <TabButton k="WEBHOOKS" label="Webhooks" />
               <TabButton k="ENV" label="Variáveis de Ambiente" />
               <TabButton k="IDENTIDADE" label="Identidade" />
+              <TabButton k="SOBRE" label="Sobre nós" />
               <TabButton k="ARQUIVOS" label="Arquivos (S3)" />
             </div>
 
@@ -592,6 +594,10 @@ Eventos obrigatórios:
 
             {tab === 'IDENTIDADE' ? (
               <TenantTabIdentidade apiClientId={tenant.id} empresaId={tenant.empresaId} />
+            ) : null}
+
+            {tab === 'SOBRE' ? (
+              <TenantTabSobreNos apiClientId={tenant.id} empresaId={tenant.empresaId} />
             ) : null}
 
             {tab === 'ARQUIVOS' ? <TenantTabArquivos apiClientId={tenant.id} empresaId={tenant.empresaId} /> : null}

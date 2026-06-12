@@ -65,6 +65,12 @@ export const endpoints = {
   apiClientBrandingDeleteSlot: (apiClientId: number, slot: string) =>
     `/api/v1/api-clients/${apiClientId}/branding/assets/${encodeURIComponent(slot)}`,
   apiClientBrandingImport: (apiClientId: number) => `/api/v1/api-clients/${apiClientId}/branding/import`,
+  apiClientBrandingAboutInit: (apiClientId: number) =>
+    `/api/v1/api-clients/${apiClientId}/branding/about/init`,
+  apiClientBrandingAboutUpload: (apiClientId: number, assetKey: string) =>
+    `/api/v1/api-clients/${apiClientId}/branding/about/${encodeURIComponent(assetKey)}`,
+  apiClientBrandingAboutDelete: (apiClientId: number, assetKey: string) =>
+    `/api/v1/api-clients/${apiClientId}/branding/about/${encodeURIComponent(assetKey)}`,
 
   // Webhooks
   webhooksEndpoints: (empresaId?: number) =>

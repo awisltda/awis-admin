@@ -91,7 +91,7 @@ export function TenantTabArquivos({ apiClientId, empresaId }: Props) {
   const [creatingFolder, setCreatingFolder] = useState(false)
 
   const [uploading, setUploading] = useState(false)
-  const [versionedUpload, setVersionedUpload] = useState(true)
+  const [versionedUpload, setVersionedUpload] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; item?: S3AssetItem }>({ open: false })
 
   const crumbs = useMemo(() => splitPath(path), [path])
@@ -219,7 +219,7 @@ export function TenantTabArquivos({ apiClientId, empresaId }: Props) {
 
       <Card
         title="Arquivos do Whitelabel"
-        subtitle="Gerenciador genérico S3. Logos, banners (planos.png, pet.png…), sobre/ (hero-sobre.jpg): overwrite incrementa assetsRevision. Prefira Identidade para ícones de marca."
+        subtitle="Gerenciador genérico S3. Para imagens da página Sobre nós, use a aba Sobre nós (upload guiado). Overwrite incrementa assetsRevision. Prefira Identidade para ícones de marca."
       >
         <div className="s3-card">
           {/* Breadcrumbs (scroll horizontal) */}
@@ -296,7 +296,7 @@ export function TenantTabArquivos({ apiClientId, empresaId }: Props) {
                     onChange={(e) => setVersionedUpload(e.target.checked)}
                     disabled={busy}
                   />
-                  Upload versionado (nome com hash — evita cache preso ao substituir)
+                  Upload versionado (nome com hash — use só para arquivos avulsos; desmarcado = overwrite canônico)
                 </label>
               </div>
 
