@@ -84,4 +84,5 @@ export type TabKey =
   | 'WEBHOOKS'
   | 'ENV'
   | 'IDENTIDADE'
+  | 'SOBRE'
   | 'ARQUIVOS'
