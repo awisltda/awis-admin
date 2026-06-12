@@ -327,12 +327,12 @@ export function TenantTabSobreNos({ apiClientId, empresaId }: Props) {
         <Card title="Página ainda não configurada no manifest">
           <div className="awis-stack" style={{ gap: 12 }}>
             <div className="awis-muted">
-              O whitelabel precisa de <span className="awis-mono">content.about</span> no manifest da API para exibir a
-              página e reconhecer os paths das imagens. Inicialize a estrutura mínima ou importe o JSON completo do
-              tenant (script <span className="awis-mono">seed-branding-manifest</span>).
+              O whitelabel precisa de <span className="awis-mono">content.about</span> no manifest da API. Inicialize
+              para criar/reparar paths da galeria (<span className="awis-mono">sobre-nos2.jpg</span>,{' '}
+              <span className="awis-mono">sobre-nos3.jpg</span>…) alinhados ao JSON do tenant.
             </div>
             <Button variant="primary" disabled={initializing} onClick={initAbout}>
-              {initializing ? 'Preparando…' : 'Preparar página Sobre nós'}
+              {initializing ? 'Preparando…' : 'Preparar / reparar galeria'}
             </Button>
           </div>
         </Card>
@@ -358,8 +358,10 @@ export function TenantTabSobreNos({ apiClientId, empresaId }: Props) {
           <Card title="Adicionar imagem à galeria" subtitle={`Próximo slot: ${nextGalleryKey}`}>
             <div className="awis-stack" style={{ gap: 10 }}>
               <div className="awis-muted">
-                Cria ou substitui o item no índice {galleryCount}. O arquivo será salvo em{' '}
-                <span className="awis-mono">sobre/</span> com o nome original (sanitizado).
+                Cria ou substitui o item no índice {galleryCount}. Paths padrão:{' '}
+                <span className="awis-mono">sobre/sobre-nos2.jpg</span>,{' '}
+                <span className="awis-mono">sobre-nos3.jpg</span>… (capa ={' '}
+                <span className="awis-mono">sobre-nos.jpg</span>).
               </div>
               <div className="awis-row awis-row--wrap" style={{ gap: 8 }}>
                 <input
